@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ID Token Claims</title>
+  <style>
+    body { font-family: monospace; padding: 2rem; background: #0f1117; color: #e2e8f0; }
+    h1 { font-family: sans-serif; margin-bottom: 1.5rem; }
+    table { border-collapse: collapse; width: 100%; max-width: 700px; }
+    td { padding: 0.5rem 1rem; border-bottom: 1px solid #2d3148; vertical-align: top; }
+    td:first-child { color: #60a5fa; width: 200px; }
+    a { color: #60a5fa; }
+  </style>
+</head>
+<body>
+  <h1>ID Token Claims</h1>
+  <table>
+    {% for key, value in claims.items() %}
+    <tr>
+      <td>{{ key }}</td>
+      <td>{{ value }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <br>
+  <a href="/">Start over</a>
+</body>
+</html>
