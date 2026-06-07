@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Profile</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; background: #0f1117; color: #e2e8f0; }
+    .card { background: #1a1d2e; border: 1px solid #2d3148; border-radius: 8px; padding: 2rem; max-width: 480px; }
+    h1 { margin-bottom: 1.5rem; }
+    p { margin: 0.5rem 0; color: #94a3b8; }
+    span { color: #e2e8f0; }
+    .tag { display: inline-block; font-size: 0.75rem; background: #1e3a5f; color: #60a5fa; padding: 0.2rem 0.6rem; border-radius: 999px; margin-bottom: 1.5rem; }
+    a { color: #60a5fa; text-decoration: none; margin-right: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="tag">Protected route</span>
+    <h1>{{ name }}</h1>
+    <p>Email: <span>{{ email }}</span></p>
+    <p>Object ID: <span>{{ oid }}</span></p>
+    <p>Token expires: <span>{{ expires_at }}</span></p>
+    <br>
+    <a href="/">Home</a>
+    <a href="/logout">Sign out</a>
+  </div>
+</body>
+</html>
