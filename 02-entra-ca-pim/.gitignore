@@ -1,0 +1,10 @@
+# Terraform — local state and secrets
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+
+# Local env (IPs, tenant overrides)
+.env
+
+# Commit: terraform/.terraform.lock.hcl, terraform.tfvars.example, *.tf

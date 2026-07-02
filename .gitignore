@@ -1,1 +1,10 @@
 PORTFOLIO_PLAN.md
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/terraform.tfvars
+
+# OS / editor
+.DS_Store

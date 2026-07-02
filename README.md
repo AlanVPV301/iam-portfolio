@@ -14,7 +14,7 @@ The work here is done with the help of Cursor/Claude, official product and indus
 | #   | Project                                                                 | Stack                     | Status     |
 | --- | ----------------------------------------------------------------------- | ------------------------- | ---------- |
 | 1   | [OIDC / OAuth 2.0 Authorization Code + PKCE Flow](./01-oidc-auth-flow/) | Python, Flask, Entra ID   | ✅ Complete |
-| 2   | Entra ID Conditional Access & PIM Implementation                        | Entra ID, Microsoft Graph | 🔵 Up next |
+| 2   | [Entra ID Conditional Access & PIM Implementation](./02-entra-ca-pim/)  | Entra ID, Microsoft Graph, Terraform | ✅ Complete |
 | 3   | SCIM 2.0 Provisioning Endpoint                                          | Python, Flask, Entra ID   | ⚪ Planned  |
 | 4   | Zero Trust Identity Architecture — Fictional Company                    | Architecture doc          | ⚪ Planned  |
 | 5   | Auth0 CIAM Implementation                                               | Auth0, Python             | ⚪ Planned  |

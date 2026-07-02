@@ -1,0 +1,5 @@
+tenant_id = "your-tenant-id-here"
+
+# trusted_ip_cidr is NOT stored here — set before plan/apply:
+#   export TF_VAR_trusted_ip_cidr='203.0.113.10/32'
+#   terraform plan -parallelism=1

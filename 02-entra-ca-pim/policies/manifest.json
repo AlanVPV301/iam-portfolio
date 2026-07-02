@@ -1,0 +1,9 @@
+{
+  "exported_at": "2026-07-01T22:07:16Z",
+  "prefix": "FinFlow",
+  "paths": {
+    "conditional_access": "conditional-access/",
+    "named_locations": "named-locations/"
+  },
+  "note": "Portal JSON exports via Microsoft Graph. Screenshots (PIM, Secure Score) are manual."
+}

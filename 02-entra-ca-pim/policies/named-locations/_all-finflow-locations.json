@@ -1,0 +1,19 @@
+[
+  {
+    "CreatedDateTime": "2026-06-28T18:10:22.6578995Z",
+    "DeletedDateTime": null,
+    "DisplayName": "FinFlow-Trusted-IP-Locations",
+    "Id": "0df7d0b7-c21e-4548-95ff-b95c1bce30a1",
+    "ModifiedDateTime": "2026-06-28T18:10:22.6578995Z",
+    "AdditionalProperties": {
+      "@odata.type": "#microsoft.graph.ipNamedLocation",
+      "isTrusted": true,
+      "ipRanges": [
+        {
+          "@odata.type": "#microsoft.graph.iPv4CidrRange",
+          "cidrAddress": "203.0.113.10/32"
+        }
+      ]
+    }
+  }
+]
