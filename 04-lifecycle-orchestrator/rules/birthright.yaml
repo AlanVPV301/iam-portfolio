@@ -1,0 +1,21 @@
+# Birthright entitlements by department (FinFlow Ltd)
+# Applied on JOINER; updated on MOVER; removed on LEAVER
+#Groups for Entra ID and SCIM Roles for custom application
+
+Finance:
+  entra_groups:
+    - FinFlow-Finance
+  scim_roles:
+    - finance-reader
+
+Engineering:
+  entra_groups:
+    - FinFlow-Engineering
+  scim_roles:
+    - engineering-standard
+
+ITAdmin:
+  entra_groups:
+    - FinFlow-ITAdmin
+  scim_roles:
+    - it-admin
