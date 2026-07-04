@@ -35,9 +35,29 @@ Health check: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 
 Interactive API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
----
+## Demo scripts
 
-## Repository structure
+With the API running (`uvicorn orchestrator.main:app --reload`):
+
+```bash
+# Option A — curl walkthrough (JOINER → MOVER → LEAVER → idempotent replay)
+chmod +x scripts/simulate-event.sh
+rm -f data/orchestrator.db   # optional fresh start
+./scripts/simulate-event.sh
+
+# Option B — import ordered events from CSV
+pip install -r requirements.txt
+python3 scripts/import-hr-csv.py hr/demo-events.csv
+```
+
+**CSV files**
+
+| File | Purpose |
+|---|---|
+| `hr/demo-events.csv` | Ordered lifecycle events (join / move / term) |
+| `hr/employees.csv` | Reference roster snapshot (no `event_id`) |
+
+---
 
 ```
 04-lifecycle-orchestrator/

@@ -5,21 +5,14 @@ EventType = str  # "JOINER" | "MOVER" | "LEAVER" | "NOOP"
 # Fields that trigger a MOVER when they change
 MOVER_FIELDS = ("department", "job_title", "email")
 
-
-def row_to_dict(row) -> dict | None:
-    if row is None:
-        return None
-    return dict(row)
-
-
 def detect_event_type(existing: dict | None, incoming: dict) -> EventType:
     incoming_status = incoming["status"].lower()
-    existing_status = existing["status"].lower()
 
-
-    #If no existing row, it's a JOINER if the status is not terminated, otherwise a LEAVER if the status is CHANGING to terminated
     if existing is None:
         return "LEAVER" if incoming_status == "terminated" else "JOINER"
+
+    existing_status = existing["status"].lower()
+
     if existing_status != "terminated" and incoming_status == "terminated":
         return "LEAVER"
 

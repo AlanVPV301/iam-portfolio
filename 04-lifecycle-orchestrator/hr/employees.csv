@@ -1,0 +1,5 @@
+employee_id,email,first_name,last_name,department,job_title,status,manager_id
+E001,alice.finance@finflow.example,Alice,Finance,Finance,Analyst,active,
+E002,bob.engineering@finflow.example,Bob,Engineering,Engineering,Developer,active,
+E003,carol.itadmin@finflow.example,Carol,ITAdmin,ITAdmin,Admin,active,
+E004,dave.standard@finflow.example,Dave,Standard,Engineering,Associate,active,

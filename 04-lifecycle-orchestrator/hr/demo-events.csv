@@ -1,0 +1,6 @@
+event_id,employee_id,email,first_name,last_name,department,job_title,status,manager_id
+evt-demo-001-alice-join,E001,alice.finance@finflow.example,Alice,Finance,Finance,Analyst,active,
+evt-demo-002-bob-join,E002,bob.engineering@finflow.example,Bob,Engineering,Finance,Developer,active,
+evt-demo-003-bob-move,E002,bob.engineering@finflow.example,Bob,Engineering,Engineering,Developer,active,
+evt-demo-004-carol-join,E003,carol.itadmin@finflow.example,Carol,ITAdmin,ITAdmin,Admin,active,
+evt-demo-005-carol-term,E003,carol.itadmin@finflow.example,Carol,ITAdmin,ITAdmin,Admin,terminated,
