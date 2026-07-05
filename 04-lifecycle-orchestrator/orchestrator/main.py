@@ -1,11 +1,12 @@
+import asyncio
 import json
 import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
-from orchestrator import db, engine
+from orchestrator import db, engine, locks
 from orchestrator.models import HREvent
 
 load_dotenv()
@@ -35,33 +36,34 @@ def health():
         "database_exists": db_path.exists(),
     }
 
+
 @app.get("/persons")
 def persons(employee_id: str | None = None):
     with db.get_connection(DATABASE_PATH) as conn:
         if employee_id:
             return db.get_person_by_id(conn, employee_id)
-        else:
-            return db.get_persons(conn)    
+        return db.get_persons(conn)
+
+
 @app.get("/hr_events")
 def hr_events(event_id: str | None = None):
     with db.get_connection(DATABASE_PATH) as conn:
         if event_id:
             return db.get_hr_event_by_event_id(conn, event_id)
-        else:
-            return db.get_hr_events(conn)    
+        return db.get_hr_events(conn)
+
 
 @app.get("/audit_events")
 def audit_events(employee_id: str | None = None):
     with db.get_connection(DATABASE_PATH) as conn:
         if employee_id:
             return db.get_audit_events(conn, employee_id)
-        else:
-            return db.get_audit_events(conn)    
+        return db.get_audit_events(conn)
 
 
 # HR event ingestion endpoint, goes through the model validation and parsing before upserting to the database
 @app.post("/hr/events", status_code=201)
-def ingest_hr_event(event: HREvent):
+async def ingest_hr_event(event: HREvent):
     #(model_dump() turns the Pydantic model into a dict for the person parameter.)
     incoming = event.model_dump()
 
@@ -75,53 +77,70 @@ def ingest_hr_event(event: HREvent):
                 "hr_event_id": existing_hr_event["id"],
                 "idempotent_replay": True,   # optional — makes debugging obvious
             } # If the event has already been processed, return an error and the event data
-        existing = db.get_person_by_id(conn, incoming["employee_id"])  # Row | None depending on if the employee exists
-        result = engine.process_hr_event(existing, incoming) # result["event_type"], result["plan"]
-        db.upsert_person(conn, incoming)
-        hr_event_id = db.insert_hr_event(
-            conn,
-            incoming["event_id"],
-            incoming["employee_id"],
-            result["event_type"],
-            result["plan"],
-        )
-        db.insert_audit_event(
-            conn,
-            hr_event_id,
-            incoming["employee_id"],
-            "jml_detected",
-            {"event_type": result["event_type"]},
-        )
-        db.insert_audit_event(
-            conn,
-            hr_event_id,
-            incoming["employee_id"],
-            "plan_computed",
-            result["plan"],
-        )
-        db.insert_audit_event(
-            conn,
-            hr_event_id,
-            incoming["employee_id"],
-            "person_upserted",
-            {
+
+    lock = locks.lock_for(incoming["employee_id"])
+    if lock.locked():
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "identity_locked",
                 "employee_id": incoming["employee_id"],
-                "department": incoming["department"],
-                "email": incoming["email"],
-                "status": incoming["status"],
+                "retry_after_seconds": locks.PROCESSING_SECONDS,
             },
+            headers={"Retry-After": str(locks.PROCESSING_SECONDS)},
         )
-        db.insert_audit_event(
-            conn,
-            hr_event_id,
-            incoming["employee_id"],
-            "hr_event_completed",
-            {
-                "hr_event_id": hr_event_id,
-                "event_id": incoming["event_id"],
-            },
-        )
-        conn.commit()
+
+    async with lock:
+        await asyncio.sleep(locks.PROCESSING_SECONDS)  # simulate slow Entra/SCIM work
+
+        with db.get_connection(DATABASE_PATH) as conn:
+            existing = db.get_person_by_id(conn, incoming["employee_id"])  # Row | None depending on if the employee exists
+            result = engine.process_hr_event(existing, incoming) # result["event_type"], result["plan"]
+            db.upsert_person(conn, incoming)
+            hr_event_id = db.insert_hr_event(
+                conn,
+                incoming["event_id"],
+                incoming["employee_id"],
+                result["event_type"],
+                result["plan"],
+            )
+            db.insert_audit_event(
+                conn,
+                hr_event_id,
+                incoming["employee_id"],
+                "jml_detected",
+                {"event_type": result["event_type"]},
+            )
+            db.insert_audit_event(
+                conn,
+                hr_event_id,
+                incoming["employee_id"],
+                "plan_computed",
+                result["plan"],
+            )
+            db.insert_audit_event(
+                conn,
+                hr_event_id,
+                incoming["employee_id"],
+                "person_upserted",
+                {
+                    "employee_id": incoming["employee_id"],
+                    "department": incoming["department"],
+                    "email": incoming["email"],
+                    "status": incoming["status"],
+                },
+            )
+            db.insert_audit_event(
+                conn,
+                hr_event_id,
+                incoming["employee_id"],
+                "hr_event_completed",
+                {
+                    "hr_event_id": hr_event_id,
+                    "event_id": incoming["event_id"],
+                },
+            )
+            conn.commit()
 
     return {
         "event_type": result["event_type"],

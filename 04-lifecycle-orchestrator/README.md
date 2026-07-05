@@ -1,22 +1,18 @@
 # Project 4 — Identity Lifecycle Orchestrator
 
-Event-driven joiner / mover / leaver (JML) orchestration for a fictional HR source, with birthright entitlement planning and a full audit trail. Phase 1 builds the engine and persistence only — no Entra or SCIM connectors yet.
+Event-driven joiner / mover / leaver (JML) orchestration for a fictional HR source, with birthright entitlement planning and a full audit trail.
 
-**Client:** FinFlow Ltd (same fictional fintech as Project 2)
-
-**Stack:** Python 3.12, FastAPI, SQLite, YAML rules
+**Client:** FinFlow Ltd · **Stack:** Python 3.12, FastAPI, SQLite, YAML rules
 
 ---
 
-## Phase 1 scope (current)
+## Scope
 
-- Ingest HR records (API + CSV)
-- Detect JOINER / MOVER / LEAVER by diffing authoritative state
-- Compute provisioning plans from `rules/birthright.yaml` (stored, not executed)
-- Append-only audit log + idempotent job processing
-- Admin API to inspect persons, jobs, and audit events
+**Phase 1:** HR ingest, JML detection, birthright plans (stored, not executed), audit log, idempotent `event_id` replay.
 
-**Not in Phase 1:** Entra Graph, SCIM targets, retry queues.
+**Phase 1.5:** Per-employee in-memory lock (~5s simulated provisioning). Concurrent events for the same `employee_id` get `409 Conflict` + `Retry-After: 5`.
+
+**Not yet:** Entra Graph, SCIM targets, durable queues.
 
 ---
 
@@ -24,58 +20,44 @@ Event-driven joiner / mover / leaver (JML) orchestration for a fictional HR sour
 
 ```bash
 cd 04-lifecycle-orchestrator
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
 uvicorn orchestrator.main:app --reload
 ```
 
-Health check: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
-
-Interactive API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-
-## Demo scripts
-
-With the API running (`uvicorn orchestrator.main:app --reload`):
-
-```bash
-# Option A — curl walkthrough (JOINER → MOVER → LEAVER → idempotent replay)
-chmod +x scripts/simulate-event.sh
-rm -f data/orchestrator.db   # optional fresh start
-./scripts/simulate-event.sh
-
-# Option B — import ordered events from CSV
-pip install -r requirements.txt
-python3 scripts/import-hr-csv.py hr/demo-events.csv
-```
-
-**CSV files**
-
-| File | Purpose |
-|---|---|
-| `hr/demo-events.csv` | Ordered lifecycle events (join / move / term) |
-| `hr/employees.csv` | Reference roster snapshot (no `event_id`) |
+- Health: http://127.0.0.1:8000/health
+- API docs: http://127.0.0.1:8000/docs
 
 ---
 
+## Demo scripts
+
+With the API running:
+
+```bash
+rm -f data/orchestrator.db   # optional fresh start
+
+./scripts/simulate-event.sh           # JML walkthrough + idempotent replay
+./scripts/demo-lock-contention.sh     # 409 lock reject + retry
+python3 scripts/import-hr-csv.py hr/demo-events.csv
 ```
-04-lifecycle-orchestrator/
-├── hr/                    # Sample HR feed (CSV)
-├── rules/                 # Birthright entitlement maps
-├── orchestrator/          # FastAPI app + engine (Phase 1+)
-└── scripts/               # Demo / import helpers
-```
+
+| Script | Purpose |
+|---|---|
+| `simulate-event.sh` | JOINER → MOVER → LEAVER → replay |
+| `demo-lock-contention.sh` | Two concurrent curls for `E001` |
+| `import-hr-csv.py` | POST rows from `hr/demo-events.csv` |
 
 ---
 
 ## SailPoint mapping
 
-| This project        | SailPoint equivalent        |
-| ------------------- | --------------------------- |
-| HR CSV / API        | Authoritative source        |
-| `persons` table     | Identity profile            |
-| JML detection       | Lifecycle events            |
-| `birthright.yaml`   | Provisioning policy         |
-| `plan_json` on jobs | Policy / provisioning plan  |
-| `audit_events`      | Audit trail                 |
+| This project | SailPoint equivalent |
+|---|---|
+| HR CSV / API | Authoritative source |
+| `persons` | Identity profile |
+| JML detection | Lifecycle events |
+| `birthright.yaml` | Provisioning policy |
+| `plan_json` on `hr_events` | Provisioning plan |
+| `audit_events` | Audit trail |
+| Per-employee lock | Identity processing mutex |
