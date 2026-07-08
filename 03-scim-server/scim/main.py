@@ -7,8 +7,9 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from scim import db
-from scim.models import SCIMUser, ScimMeta
+from scim import db, patch
+from scim.filter import parse_filter
+from scim.models import SCIMUser, ScimMeta, ScimPatchPayload
 
 
 load_dotenv()
@@ -99,7 +100,39 @@ def get_user(user_id: str, token: str = Depends(verify_token)):
             )
         return row_to_scim_user(user)
 
-@app.post("/scim/v2/Users")
+#Get users with filters in Entra format, username or external ID
+@app.get("/scim/v2/Users")
+def list_users(
+    filter: str | None = None,
+    startIndex: int = 1,
+    count: int = 100,
+    token: str = Depends(verify_token),
+):
+    with db.get_connection(DATABASE_PATH) as conn:
+        if filter is None:
+            # optional: return all users, or empty list
+            rows = []
+        else:
+            attr, value = parse_filter(filter)
+            if attr == "userName":
+                row = db.get_user_by_user_name(conn, value)
+            elif attr == "externalId":
+                row = db.get_user_by_external_id(conn, value)
+            else:
+                raise HTTPException(400, detail=f"unsupported filter attribute: {attr}")
+            rows = [row] if row else []
+
+    #Loop through the results, format in SCIM response
+    resources = [row_to_scim_user(r).model_dump(mode="json") for r in rows]
+    return {
+        "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
+        "totalResults": len(resources),
+        "startIndex": startIndex,
+        "itemsPerPage": len(resources),
+        "Resources": resources,
+    }
+
+@app.post("/scim/v2/Users", status_code=201)
 def create_user(user: SCIMUser, token: str = Depends(verify_token)):
     with db.get_connection(DATABASE_PATH) as conn:
         existing_user = db.get_user_by_external_id(conn, user.externalId)
@@ -120,7 +153,19 @@ def create_user(user: SCIMUser, token: str = Depends(verify_token)):
         db.create_user(conn, user)   # DB stores created_at/updated_at, not meta blob
 
 
-    return {
-        "status": "created",
-        "user": user.model_dump(mode="json"),
-    }
+    return user.model_dump(mode="json")
+ 
+
+@app.patch("/scim/v2/Users/{user_id}")
+def update_user(user_id: str, patch_payload: ScimPatchPayload, token: str = Depends(verify_token)):
+    with db.get_connection(DATABASE_PATH) as conn:
+        row = db.get_user_by_id(conn, user_id)
+        if not row:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        row = patch.apply_patch_to_row(dict(row), patch_payload.Operations)
+        db.update_user_row(conn, row)
+
+    return row_to_scim_user(row).model_dump(mode="json")

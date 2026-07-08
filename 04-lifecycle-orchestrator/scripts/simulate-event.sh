@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
-# FinFlow lifecycle demo: JOINER → MOVER → LEAVER → idempotent replay
+# FinFlow lifecycle demo: JOINER → MOVER → LEAVER → idempotent replay → lock contention
 #
 # Prerequisites:
 #   uvicorn orchestrator.main:app --reload
 #
 # Usage (fresh DB recommended: rm -f data/orchestrator.db):
 #   ./scripts/simulate-event.sh
+#
+# Lock-only quick demo (no JML walkthrough):
+#   ./scripts/demo-lock-contention.sh
 
 set -euo pipefail
 
@@ -91,6 +94,56 @@ post_event "6. Idempotent replay — same event_id as step 1" '{
   "job_title": "Analyst",
   "status": "active"
 }'
+
+echo "=== 7. Lock — background Bob event (holds lock ~5s) ==="
+curl -sS -X POST "${API}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "event_id": "evt-sim-007-bob-lock-a",
+  "employee_id": "E002",
+  "email": "bob.engineering@finflow.example",
+  "first_name": "Bob",
+  "last_name": "Engineering",
+  "department": "Engineering",
+  "job_title": "Senior Developer",
+  "status": "active"
+}' | python3 -m json.tool &
+LOCK_BG_PID=$!
+
+sleep 0.5
+
+echo
+echo "=== 8. Lock — concurrent Bob event (expect 409 + Retry-After: 5) ==="
+curl -i -sS -X POST "${API}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "event_id": "evt-sim-008-bob-lock-b",
+  "employee_id": "E002",
+  "email": "bob.engineering@finflow.example",
+  "first_name": "Bob",
+  "last_name": "Engineering",
+  "department": "Engineering",
+  "job_title": "Senior Developer",
+  "status": "active"
+}'
+echo
+
+wait "${LOCK_BG_PID}"
+
+echo "=== 9. Lock — retry rejected event (expect 201) ==="
+curl -sS -X POST "${API}" \
+  -H "Content-Type: application/json" \
+  -d '{
+  "event_id": "evt-sim-008-bob-lock-b",
+  "employee_id": "E002",
+  "email": "bob.engineering@finflow.example",
+  "first_name": "Bob",
+  "last_name": "Engineering",
+  "department": "Engineering",
+  "job_title": "Senior Developer",
+  "status": "active"
+}' | python3 -m json.tool
+echo
 
 echo "=== GET /persons ==="
 curl -sS "${BASE_URL}/persons" | python3 -m json.tool

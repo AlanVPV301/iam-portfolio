@@ -1,6 +1,7 @@
 #Incoming JSON data model validation and parsing
 
 from pydantic import BaseModel, EmailStr, Field
+from typing import Any, List, Literal, Optional
 from datetime import datetime
 
 def default_user_schemas() -> list[str]:
@@ -31,3 +32,13 @@ class SCIMUser(BaseModel):
     id: str | None = None            # server assigns on POST
     meta: ScimMeta | None = None
     roles: list[str] | None = None
+
+
+class ScimPatchOperation(BaseModel):
+    op: Literal["add", "remove", "replace"]
+    path: Optional[str] = None
+    value: Optional[Any] = None
+
+class ScimPatchPayload(BaseModel):
+    schemas: List[Literal["urn:ietf:params:scim:api:messages:2.0:PatchOp"]]
+    Operations: List[ScimPatchOperation]

@@ -52,6 +52,7 @@ upsert_query = """
         updated_at = excluded.updated_at
 """
 
+
 #query for inserting a new HR event
 insert_hr_events_query = """
     INSERT INTO hr_events (event_id, employee_id, event_type, status, plan_json, created_at)

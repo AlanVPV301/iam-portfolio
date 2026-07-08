@@ -37,15 +37,15 @@ With the API running:
 ```bash
 rm -f data/orchestrator.db   # optional fresh start
 
-./scripts/simulate-event.sh           # JML walkthrough + idempotent replay
-./scripts/demo-lock-contention.sh     # 409 lock reject + retry
+./scripts/simulate-event.sh           # JML + idempotent replay + lock contention (steps 7–9)
+./scripts/demo-lock-contention.sh     # lock-only quick demo (409 + retry)
 python3 scripts/import-hr-csv.py hr/demo-events.csv
 ```
 
 | Script | Purpose |
 |---|---|
-| `simulate-event.sh` | JOINER → MOVER → LEAVER → replay |
-| `demo-lock-contention.sh` | Two concurrent curls for `E001` |
+| `simulate-event.sh` | JOINER → MOVER → LEAVER → replay → **lock 409** |
+| `demo-lock-contention.sh` | Lock-only: two concurrent curls for `E001` |
 | `import-hr-csv.py` | POST rows from `hr/demo-events.csv` |
 
 ---
