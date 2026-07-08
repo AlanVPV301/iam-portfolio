@@ -2,11 +2,13 @@ import asyncio
 import json
 import os
 from pathlib import Path
-
+import uuid
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from scim import db
+from scim.models import SCIMUser, ScimMeta
 
 
 load_dotenv()
@@ -53,6 +55,23 @@ def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security_sc
         )
     return credentials.credentials
 
+def row_to_scim_user(row: dict) -> SCIMUser:
+    return SCIMUser(
+        id=row["id"],
+        userName=row["user_name"],
+        externalId=row["external_id"],
+        name={"givenName": row["given_name"], "familyName": row["family_name"]},
+        emails=[{"value": row["user_name"], "primary": True}],
+        active=bool(row["active"]),
+        roles=json.loads(row["roles_json"]),
+        meta=ScimMeta(
+            resourceType="User",
+            created=datetime.fromisoformat(row["created_at"]),
+            lastModified=datetime.fromisoformat(row["updated_at"]),
+            location=f"http://127.0.0.1:8000/scim/v2/Users/{row['id']}",
+        ),
+    )
+
 # 4. Apply the dependency to protect specific routes
 @app.get("/scim/v2/ServiceProviderConfig")
 def get_service_provider_config(token: str = Depends(verify_token)):
@@ -69,3 +88,39 @@ def get_service_provider_config(token: str = Depends(verify_token)):
   }]
 }
     
+@app.get("/scim/v2/Users/{user_id}")
+def get_user(user_id: str, token: str = Depends(verify_token)):
+    with db.get_connection(DATABASE_PATH) as conn:
+        user = db.get_user_by_id(conn, user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found",
+            )
+        return row_to_scim_user(user)
+
+@app.post("/scim/v2/Users")
+def create_user(user: SCIMUser, token: str = Depends(verify_token)):
+    with db.get_connection(DATABASE_PATH) as conn:
+        existing_user = db.get_user_by_external_id(conn, user.externalId)
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="User already exists",
+            )
+
+        user.id = str(uuid.uuid4())
+        user.meta = ScimMeta(
+            resourceType="User",
+            created=datetime.now(timezone.utc),
+            lastModified=datetime.now(timezone.utc),
+            location=f"http://127.0.0.1:8000/scim/v2/Users/{user.id}",
+)
+
+        db.create_user(conn, user)   # DB stores created_at/updated_at, not meta blob
+
+
+    return {
+        "status": "created",
+        "user": user.model_dump(mode="json"),
+    }

@@ -2,6 +2,7 @@ import json
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
+from scim.models import SCIMUser
 
 DATABASE_PATH = "./data/scim.db"
 
@@ -14,10 +15,17 @@ CREATE TABLE IF NOT EXISTS users (
     given_name          TEXT,
     family_name         TEXT,
     active              INTEGER NOT NULL,
-    roles_json          TEXT NOT NULL
+    roles_json          TEXT NOT NULL,
+    created_at          TEXT NOT NULL,
+    updated_at          TEXT NOT NULL
 );
 """
 
+#Query for inserting or updating a person (Employee)
+create_user_query = """
+    INSERT INTO users (id, external_id, user_name, given_name, family_name, active, roles_json, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+"""
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -37,3 +45,21 @@ def init_db(db_path: str | None = None) -> None:
     with get_connection(db_path) as conn:
         conn.executescript(SCHEMA)
         conn.commit()
+
+
+def get_user_by_external_id(conn, external_id) -> dict | None:  
+    cursor = conn.execute("SELECT * FROM users WHERE external_id = ?", (external_id,))
+    row = cursor.fetchone()
+    #Converts the row to a dict if it exists, otherwise returns None
+    return dict(row) if row else None
+
+def get_user_by_id(conn, user_id) -> dict | None:  
+    cursor = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+    row = cursor.fetchone()
+    #Converts the row to a dict if it exists, otherwise returns None
+    return dict(row) if row else None
+
+
+def create_user(conn, SCIMUser: SCIMUser) -> None:
+    conn.execute(create_user_query, (SCIMUser.id, SCIMUser.externalId, SCIMUser.userName, SCIMUser.name.givenName, SCIMUser.name.familyName, SCIMUser.active, json.dumps(SCIMUser.roles) if SCIMUser.roles else None, utc_now(), utc_now()))
+    conn.commit()
