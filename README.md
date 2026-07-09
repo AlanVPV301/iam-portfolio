@@ -8,25 +8,28 @@ The work here is done with the help of Cursor/Claude, official product and indus
 
 ---
 
+
+
 ## Projects
 
 
-| #   | Project                                                                 | Stack                                      | Status        |
-| --- | ----------------------------------------------------------------------- | ------------------------------------------ | ------------- |
-| 1   | [OIDC / OAuth 2.0 Authorization Code + PKCE Flow](./01-oidc-auth-flow/) | Python, Flask, Entra ID                    | ✅ Complete    |
-| 2   | [Entra ID Conditional Access & PIM Implementation](./02-entra-ca-pim/)  | Entra ID, Microsoft Graph, Terraform         | ✅ Complete    |
-| 3   | [SCIM 2.0 Provisioning Endpoint](./03-scim-server/)                     | Python, FastAPI, SQLite                    | 🔵 In progress |
-| 4   | [Identity Lifecycle Orchestrator](./04-lifecycle-orchestrator/)         | Python, FastAPI, SQLite                    | 🔵 In progress |
+| #   | Project                                                                 | Stack                                | Status         |
+| --- | ----------------------------------------------------------------------- | ------------------------------------ | -------------- |
+| 1   | [OIDC / OAuth 2.0 Authorization Code + PKCE Flow](./01-oidc-auth-flow/) | Python, Flask, Entra ID              | ✅ Complete     |
+| 2   | [Entra ID Conditional Access & PIM Implementation](./02-entra-ca-pim/)  | Entra ID, Microsoft Graph, Terraform | ✅ Complete     |
+| 3   | [SCIM 2.0 Provisioning Endpoint](./03-scim-server/)                     | Python, FastAPI, SQLite              | 🔵 In progress |
+| 4   | [Identity Lifecycle Orchestrator](./04-lifecycle-orchestrator/)         | Python, FastAPI, SQLite              | 🔵 In progress |
 
 
 ---
 
+
+
 ## Background
 
-**Current role:** Tier 3 IAM Support Engineer — Transmit Security + SailPoint ISC  
-**Target roles:** IAM Engineer → Senior IAM Engineer → Identity Security Architect
+**Current role:** Tier 3 IAM Support Engineer. Previously Cloud Support Engineer 3 At SailPoint.
 
-**What I work with daily:**
+**What I work with daily/have experience with:**
 
 - OAuth 2.0 / OIDC — deep troubleshooting across multiple IdPs and SDK implementations
 - SAML / SSO / federation — SME-level from Atlassian, SailPoint, and Transmit Security
