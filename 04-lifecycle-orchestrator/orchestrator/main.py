@@ -8,6 +8,8 @@ from fastapi import FastAPI, HTTPException
 
 from orchestrator import db, engine, locks
 from orchestrator.models import HREvent
+from orchestrator.connectors import scim
+
 
 load_dotenv()
 
@@ -15,7 +17,7 @@ DATABASE_PATH = os.getenv("DATABASE_PATH", db.DATABASE_PATH)
 
 app = FastAPI(
     title="FinFlow Lifecycle Orchestrator",
-    description="HR-driven joiner / mover / leaver orchestration (Phase 1)",
+    description="HR-driven joiner / mover / leaver orchestration (Phase 2b — SCIM connector)",
     version="0.1.0",
 )
 
@@ -31,7 +33,7 @@ def health():
     db_path = Path(DATABASE_PATH)
     return {
         "status": "ok",
-        "phase": 1,
+        "phase": 2,
         "database_path": str(db_path.resolve()),
         "database_exists": db_path.exists(),
     }
@@ -118,6 +120,16 @@ async def ingest_hr_event(event: HREvent):
                 "plan_computed",
                 result["plan"],
             )
+            
+            scim_result = scim.provision_scim(result["event_type"], incoming, result["plan"])
+            if scim_result.get("skipped"):
+                db.insert_audit_event(conn, hr_event_id, incoming["employee_id"], "scim_skipped", scim_result)
+            elif scim_result.get("scim_id"):
+                db.insert_audit_event(conn, hr_event_id, incoming["employee_id"], "scim_provisioned", scim_result)
+            else:
+                # malformed success — treat as failure
+                raise ValueError(f"unexpected SCIM result: {scim_result}")
+
             db.insert_audit_event(
                 conn,
                 hr_event_id,

@@ -17,8 +17,8 @@ The work here is done with the help of Cursor/Claude, official product and indus
 | --- | ----------------------------------------------------------------------- | ------------------------------------ | -------------- |
 | 1   | [OIDC / OAuth 2.0 Authorization Code + PKCE Flow](./01-oidc-auth-flow/) | Python, Flask, Entra ID              | ✅ Complete     |
 | 2   | [Entra ID Conditional Access & PIM Implementation](./02-entra-ca-pim/)  | Entra ID, Microsoft Graph, Terraform | ✅ Complete     |
-| 3   | [SCIM 2.0 Provisioning Endpoint](./03-scim-server/)                     | Python, FastAPI, SQLite              | 🔵 In progress |
-| 4   | [Identity Lifecycle Orchestrator](./04-lifecycle-orchestrator/)         | Python, FastAPI, SQLite              | 🔵 In progress |
+| 3   | [SCIM 2.0 Provisioning Endpoint](./03-scim-server/)                     | Python, FastAPI, SQLite              | ✅ Complete     |
+| 4   | [Identity Lifecycle Orchestrator](./04-lifecycle-orchestrator/)         | Python, FastAPI, SQLite              | ✅ Complete     |
 
 
 ---

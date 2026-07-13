@@ -13,9 +13,11 @@ Inbound SCIM 2.0 server for FinFlow Ltd custom apps. Bearer-authenticated REST A
 - `POST /scim/v2/Users` — create (server assigns `id` + `meta`)
 - `GET /scim/v2/Users/{id}` — read by SCIM id
 - `GET /scim/v2/Users?filter=...` — Entra-style lookup (`userName`, `externalId`)
-- `PATCH /scim/v2/Users/{id}` — PatchOp (`replace` on `active`, name, etc.)
+- `PATCH /scim/v2/Users/{id}` — PatchOp (`replace` on `active`, `name`, `userName`, `roles`)
 
-**Next:** Entra provisioning hookup, orchestrator SCIM client (Project 4).
+**Consumed by:** [Project 4 orchestrator](../04-lifecycle-orchestrator/) SCIM connector (`:8000` → `:8001`).
+
+**Next:** Entra enterprise app provisioning (optional), `emails` PATCH support.
 
 ---
 
@@ -25,12 +27,14 @@ Inbound SCIM 2.0 server for FinFlow Ltd custom apps. Bearer-authenticated REST A
 cd 03-scim-server
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env   # set SCIM_BEARER_TOKEN
-uvicorn scim.main:app --reload
+cp .env.example .env
+uvicorn scim.main:app --reload --port 8001
 ```
 
-- Health: http://127.0.0.1:8000/health
-- API docs: http://127.0.0.1:8000/docs
+- Health: http://127.0.0.1:8001/health
+- API docs: http://127.0.0.1:8001/docs
+
+Use port **8001** when running alongside the orchestrator on **8000**.
 
 ---
 
@@ -38,7 +42,7 @@ uvicorn scim.main:app --reload
 
 ```bash
 export TOKEN="$(grep '^SCIM_BEARER_TOKEN=' .env | cut -d= -f2-)"
-rm -f data/scim.db          # optional fresh start
+rm -f data/scim.db          # restart uvicorn after delete
 ./scripts/demo-scim.sh
 ```
 
@@ -49,13 +53,12 @@ rm -f data/scim.db          # optional fresh start
 ```
 03-scim-server/
 ├── scim/
-│   ├── main.py       # routes
-│   ├── models.py     # SCIM User + PatchOp
-│   ├── db.py         # SQLite
-│   ├── patch.py      # apply PatchOp to row
-│   └── filter.py     # parse filter=userName eq "..."
-├── scripts/
-│   └── demo-scim.sh
+│   ├── main.py
+│   ├── models.py
+│   ├── db.py
+│   ├── patch.py
+│   └── filter.py
+├── scripts/demo-scim.sh
 └── data/             # gitignored
 ```
 

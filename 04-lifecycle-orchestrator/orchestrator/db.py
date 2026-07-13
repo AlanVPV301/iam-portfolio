@@ -76,13 +76,14 @@ def get_connection(db_path: str | None = None) -> sqlite3.Connection:
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.executescript(SCHEMA)
+    conn.commit()
     return conn
 
 
 def init_db(db_path: str | None = None) -> None:
-    with get_connection(db_path) as conn:
-        conn.executescript(SCHEMA)
-        conn.commit()
+    with get_connection(db_path):
+        pass
 
 def get_persons(conn) -> dict | None:
     cursor = conn.execute("SELECT * FROM persons")
