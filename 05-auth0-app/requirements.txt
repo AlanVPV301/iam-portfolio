@@ -1,0 +1,4 @@
+auth0-server-python>=1.0.0b1,<2
+flask[async]>=3.0
+python-dotenv>=1.0
+markupsafe>=2.0

@@ -19,6 +19,7 @@ The work here is done with the help of Cursor/Claude, official product and indus
 | 2   | [Entra ID Conditional Access & PIM Implementation](./02-entra-ca-pim/)  | Entra ID, Microsoft Graph, Terraform | ✅ Complete     |
 | 3   | [SCIM 2.0 Provisioning Endpoint](./03-scim-server/)                     | Python, FastAPI, SQLite              | ✅ Complete     |
 | 4   | [Identity Lifecycle Orchestrator](./04-lifecycle-orchestrator/)         | Python, FastAPI, SQLite              | ✅ Complete     |
+| 5   | [Auth0 Adaptive MFA & Step-Up (FinFlow)](./05-auth0-app/)               | Python, Flask, Auth0                 | 🔵 In progress |
 
 
 ---
@@ -42,5 +43,6 @@ The work here is done with the help of Cursor/Claude, official product and indus
 - Writing auth flows in code, not just configuring them
 - SCIM protocol from the server side
 - Microsoft Entra ID hands-on depth beyond troubleshooting
+- Risk-based auth and step-up on a commercial IdP (Auth0)
 - Identity architecture design thinking at architect level
 
