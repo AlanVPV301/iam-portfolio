@@ -8,7 +8,7 @@ from auth0_server_python.auth_server.server_client import ServerClient
 from auth0_server_python.auth_types import LogoutOptions, StartInteractiveLoginOptions, StateData, TransactionData
 from auth0_server_python.store.abstract import AbstractDataStore
 from dotenv import load_dotenv
-from flask import Flask, after_this_request, redirect, request
+from flask import Flask, after_this_request, redirect, request, render_template
 from markupsafe import escape
 
 load_dotenv()
@@ -80,13 +80,13 @@ async def home():
     head = "<!DOCTYPE html><title>Auth0 Python Sample</title>"
 
     if user:
-        return f"""
-            {head}
-            <p>Logged in as {escape(user.get("email", ""))}</p>
-            <h1>User Profile</h1>
-            <pre>{escape(json.dumps(user, indent=2))}</pre>
-            <a href="/logout">Logout</a>
-        """
+        mfa_completed = "mfa" in (user.get("amr") or [])
+
+        return render_template("dashboard.html",
+            name=user.get("name", ""),
+            email=user.get("email", ""),
+            mfa=mfa_completed,
+        )
 
     return f"""
         {head}
