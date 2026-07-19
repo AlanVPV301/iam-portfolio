@@ -1,5 +1,5 @@
 exports.onExecutePostUserRegistration = async (event, api) => {
-    const SCIM_URL = "<SERVER_URL_HERE>";
+    const SCIM_URL = "<SCIM_SERVER_URL>";
   
   
   
@@ -34,22 +34,27 @@ exports.onExecutePostUserRegistration = async (event, api) => {
     const data = await response.json();          // ← saved to variable
     scimUser = data.Resources?.[0] ?? null;    // ← first match, or null
     console.log("Lookup result:", scimUser);
-  
+    let create_response = null;
     if (!scimUser){
         try {
-          fetch(`${SCIM_URL}/scim/v2/Users`, {
+          create_response = await (fetch(`${SCIM_URL}/scim/v2/Users`, {
           method: 'POST',
           headers: {
           'Authorization': `Bearer ${event.secrets.BEARER}`,
           'Content-Type': 'application/json'  
           },
         body: JSON.stringify(userData)
-        })
-        }
+        
+          }
+        )
+        )}
+        
         catch (error) {
           console.error("SCIM POST error:", error);
         return;
         }
+        const created = await create_response.json();
+        console.log("Created:", created);
     }
     
     else {
