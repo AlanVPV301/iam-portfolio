@@ -1,5 +1,5 @@
 exports.onExecutePostUserRegistration = async (event, api) => {
-    const SCIM_URL = "https://telecharger-factors-posting-barbie.trycloudflare.com";
+    const SCIM_URL = "<SERVER_URL_HERE>";
   
   
   
