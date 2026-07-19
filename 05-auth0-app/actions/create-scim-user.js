@@ -1,5 +1,5 @@
 exports.onExecutePostUserRegistration = async (event, api) => {
-    const SCIM_URL = "https://extremely-answer-reform-return.trycloudflare.com";
+    const SCIM_URL = "https://telecharger-factors-posting-barbie.trycloudflare.com";
   
   
   
@@ -12,19 +12,52 @@ exports.onExecutePostUserRegistration = async (event, api) => {
       },
       "emails": [{"value": event.user.email, "primary": true}],
       "roles": ["Engineering"],
-      }
+    }
   
-    fetch(`${SCIM_URL}/scim/v2/Users`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${event.secrets.BEARER}`,
-        'Content-Type': 'application/json'  
-      },
-      body: JSON.stringify(userData)
-    })
-      .then(response => response.json())
-      .then(data => console.log('Success:', data))
-      .catch(error => console.error('Error:', error));
+    let scimUser = null;
+    let response = null;
+  
+    try{
+       response = await fetch(`${SCIM_URL}/scim/v2/Users?filter=externalId eq "${event.user.user_id}"`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${event.secrets.BEARER}`  
+        }
+      })
+    }
+    catch (error) {
+      console.error("SCIM lookup error:", error);
+      return;
+    }
+  
+  
+    const data = await response.json();          // ← saved to variable
+    scimUser = data.Resources?.[0] ?? null;    // ← first match, or null
+    console.log("Lookup result:", scimUser);
+  
+    if (!scimUser){
+        try {
+          fetch(`${SCIM_URL}/scim/v2/Users`, {
+          method: 'POST',
+          headers: {
+          'Authorization': `Bearer ${event.secrets.BEARER}`,
+          'Content-Type': 'application/json'  
+          },
+        body: JSON.stringify(userData)
+        })
+        }
+        catch (error) {
+          console.error("SCIM POST error:", error);
+        return;
+        }
+    }
     
-  };
+    else {
+      console.log("User already exists!")
+    }
+    
+  
+    };
+  
+  
   
