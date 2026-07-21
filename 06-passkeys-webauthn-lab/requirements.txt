@@ -1,0 +1,7 @@
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic>=2.10
+python-dotenv>=1.0
+itsdangerous>=2.0
+webauthn>=2.2
+jinja2>=3.1
