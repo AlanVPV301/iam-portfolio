@@ -9,10 +9,15 @@ from fastapi import FastAPI, Depends, HTTPException, status, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from passkeys.sessions import save_registration_challenge, pop_registration_challenge
 from passkeys import db
+from passkeys.webauthn_helpers import begin_registration, finish_registration
+from fastapi.templating import Jinja2Templates
+
 
 load_dotenv()
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", db.DATABASE_PATH)
+BASE_DIR = Path(__file__).resolve().parent.parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 app = FastAPI(
     title="Passkeys LAB",
@@ -36,6 +41,19 @@ def health():
         "database_exists": db_path.exists(),
     }
 
+
+@app.get("/")
+def home(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="index.html",
+        context={
+            "rp_name": "FinFlow Passkeys Lab",
+            "scenario": "happy",
+            "rp_id": "localhost",
+            "origin": "http://localhost:8002",
+        },
+    )
 
 @app.post("/webauthn/register/options")
 def register_options(request: Request, response: Response):

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{ rp_name | default("FinFlow Passkeys Lab") }}</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      padding: 2rem;
+      background: #0f1117;
+      color: #e2e8f0;
+      line-height: 1.5;
+    }
+    .card {
+      background: #1a1d2e;
+      border: 1px solid #2d3148;
+      border-radius: 8px;
+      padding: 2rem;
+      max-width: 520px;
+    }
+    h1 { margin: 0 0 0.5rem; font-size: 1.5rem; }
+    .subtitle { margin: 0 0 1.5rem; color: #94a3b8; font-size: 0.95rem; }
+    .tag {
+      display: inline-block;
+      font-size: 0.75rem;
+      background: #1e3a5f;
+      color: #60a5fa;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      margin-bottom: 1rem;
+    }
+    dl {
+      display: grid;
+      grid-template-columns: 5rem 1fr;
+      gap: 0.35rem 1rem;
+      margin: 0 0 1.5rem;
+      font-size: 0.9rem;
+    }
+    dt { color: #94a3b8; }
+    dd { margin: 0; }
+    code { font-family: ui-monospace, monospace; font-size: 0.85rem; }
+    .actions { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+    button {
+      padding: 0.6rem 1rem;
+      border-radius: 6px;
+      border: 1px solid #475569;
+      background: #334155;
+      color: #e2e8f0;
+      cursor: pointer;
+      font-size: 0.95rem;
+    }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.primary { background: #1e3a5f; border-color: #3b82f6; color: #93c5fd; }
+    pre {
+      margin: 0;
+      padding: 0.75rem;
+      border-radius: 6px;
+      background: #0b1220;
+      border: 1px solid #2d3148;
+      font-size: 0.8rem;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-height: 4rem;
+    }
+    .hint { margin-top: 1rem; font-size: 0.85rem; color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="tag">WebAuthn lab</span>
+    <h1>{{ rp_name | default("FinFlow Passkeys Lab") }}</h1>
+    <p class="subtitle">Register a passkey against this Relying Party.</p>
+
+    <dl>
+      <dt>Scenario</dt>
+      <dd><code>{{ scenario | default("happy") }}</code></dd>
+      <dt>RP ID</dt>
+      <dd><code>{{ rp_id | default("localhost") }}</code></dd>
+      <dt>Origin</dt>
+      <dd><code>{{ origin | default("http://localhost:8002") }}</code></dd>
+    </dl>
+
+    <div class="actions">
+      <button type="button" class="primary" id="register-btn">Register passkey</button>
+      <button type="button" id="login-btn" disabled title="Coming in a later phase">Sign in</button>
+    </div>
+
+    <pre id="output" aria-live="polite">Ready.</pre>
+    <p class="hint">Open this page at <code>http://localhost:8002</code> (not 127.0.0.1).</p>
+  </div>
+
+  <script>
+    const output = document.getElementById("output");
+
+    function log(message) {
+      output.textContent = typeof message === "string" ? message : JSON.stringify(message, null, 2);
+    }
+
+    function bufferFromBase64url(value) {
+      const padding = "=".repeat((4 - (value.length % 4)) % 4);
+      const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
+      const raw = atob(base64);
+      const buffer = new ArrayBuffer(raw.length);
+      const view = new Uint8Array(buffer);
+      for (let i = 0; i < raw.length; i++) view[i] = raw.charCodeAt(i);
+      return buffer;
+    }
+
+    function bufferToBase64url(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = "";
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+    }
+
+    function prepareRegistrationOptions(options) {
+      const publicKey = structuredClone(options);
+      publicKey.challenge = bufferFromBase64url(publicKey.challenge);
+      publicKey.user.id = bufferFromBase64url(publicKey.user.id);
+      if (publicKey.excludeCredentials) {
+        publicKey.excludeCredentials = publicKey.excludeCredentials.map((cred) => ({
+          ...cred,
+          id: bufferFromBase64url(cred.id),
+        }));
+      }
+      return publicKey;
+    }
+
+    function registrationCredentialToJSON(credential) {
+      const response = credential.response;
+      return {
+        id: credential.id,
+        rawId: bufferToBase64url(credential.rawId),
+        type: credential.type,
+        response: {
+          attestationObject: bufferToBase64url(response.attestationObject),
+          clientDataJSON: bufferToBase64url(response.clientDataJSON),
+          transports: response.getTransports ? response.getTransports() : undefined,
+        },
+        clientExtensionResults: credential.getClientExtensionResults(),
+        authenticatorAttachment: credential.authenticatorAttachment ?? undefined,
+      };
+    }
+
+    async function parseOptionsResponse(resp) {
+      let options = await resp.json();
+      if (typeof options === "string") options = JSON.parse(options);
+      return options;
+    }
+
+    document.getElementById("register-btn").addEventListener("click", async () => {
+      if (!window.PublicKeyCredential) {
+        log("WebAuthn is not available in this browser or context.");
+        return;
+      }
+
+      const btn = document.getElementById("register-btn");
+      btn.disabled = true;
+
+      try {
+        log("Requesting registration options…");
+        const optionsResp = await fetch("/webauthn/register/options", {
+          method: "POST",
+          credentials: "same-origin",
+        });
+        if (!optionsResp.ok) {
+          throw new Error(`Options failed: ${optionsResp.status} ${optionsResp.statusText}`);
+        }
+
+        const options = await parseOptionsResponse(optionsResp);
+        log("Creating passkey (browser prompt)…");
+
+        const credential = await navigator.credentials.create({
+          publicKey: prepareRegistrationOptions(options),
+        });
+        if (!credential) throw new Error("No credential returned.");
+
+        log("Verifying registration…");
+        const verifyResp = await fetch("/webauthn/register/verify", {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(registrationCredentialToJSON(credential)),
+        });
+
+        const result = await verifyResp.json();
+        if (!verifyResp.ok) {
+          throw new Error(result.detail || result.msg || verifyResp.statusText);
+        }
+
+        log({ status: "registered", result });
+      } catch (err) {
+        log({ status: "error", message: err.message || String(err) });
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>
