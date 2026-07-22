@@ -20,6 +20,7 @@ The work here is done with the help of Cursor/Claude, official product and indus
 | 3   | [SCIM 2.0 Provisioning Endpoint](./03-scim-server/)                     | Python, FastAPI, SQLite              | ✅ Complete |
 | 4   | [Identity Lifecycle Orchestrator](./04-lifecycle-orchestrator/)         | Python, FastAPI, SQLite              | ✅ Complete |
 | 5   | [Auth0 Adaptive MFA & Step-Up (FinFlow)](./05-auth0-app/)               | Python, Flask, Auth0                 | ✅ Complete |
+| 6   | [WebAuthn Passkeys & Digital Asset Links Lab](./06-passkeys-webauthn-lab/) | Python, FastAPI, SQLite, WebAuthn | 🔵 In progress |
 
 
 ---
