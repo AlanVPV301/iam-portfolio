@@ -7,11 +7,13 @@ from datetime import datetime, timezone
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+
 from passkeys.sessions import save_registration_challenge, pop_registration_challenge
 from passkeys import db
 from passkeys.webauthn_helpers import begin_registration, finish_registration
-from fastapi.templating import Jinja2Templates
-
 
 load_dotenv()
 
@@ -24,6 +26,8 @@ app = FastAPI(
     description="WebAuthN lab",
     version="0.1.0",
 )
+
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
 @app.on_event("startup")
@@ -63,8 +67,28 @@ def register_options(request: Request, response: Response):
 
 
 @app.post("/webauthn/register/verify")
-def register_verify(request: Request, credential: dict):
-    challenge = pop_registration_challenge(request)
+def register_verify(request: Request, response: Response, credential: dict):
+    challenge, user_name = pop_registration_challenge(request)
+    response.delete_cookie("_webauthn_tx")
+
     result = finish_registration(credential, expected_challenge=challenge)
-    save_credential_to_db(result)
-    return {"ok": True}
+    if isinstance(result, dict):
+        raise HTTPException(status_code=400, detail=result.get("msg"))
+
+    conn = db.get_connection(DATABASE_PATH)
+
+    user_id = "IDTEST1"
+    db.create_user(conn, "alanvpv.test@test.com", "Alan VPV")
+
+    transports = credential.get("response", {}).get("transports") or []
+
+    db.save_credential(
+        conn,
+        result.credential_id,
+        user_id,
+        result.credential_public_key,
+        result.sign_count,
+        transports,
+    )
+
+    return {"ok": True, "credential_id_len": len(result.credential_id)}

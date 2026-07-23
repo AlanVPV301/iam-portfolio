@@ -22,7 +22,16 @@ CREATE TABLE IF NOT EXISTS credentials (
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 """
+#Query for inserting an user
+create_user_query = """
+    INSERT INTO users (id, username, display_name)
+    VALUES (?, ?, ?)
+"""
 
+insert_credential_query = """
+    INSERT INTO credentials (credential_id, user_id, public_key, sign_count, transports)
+    VALUES (?, ?, ?, ?, ?)    
+"""
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -43,3 +52,20 @@ def get_connection(db_path: str | None = None) -> sqlite3.Connection:
 def init_db(db_path: str | None = None) -> None:
     with get_connection(db_path):
         pass
+
+def create_user(conn, username: str, display_name: str) -> None:
+    conn.execute(create_user_query, ("IDTEST1", username, display_name))
+    conn.commit()
+
+def get_credentials_for_user(conn, user_id) -> dict | None:  
+    cursor = conn.execute("SELECT * FROM credentials WHERE user_id = ?", (user_id,))
+    rows = cursor.fetchall()
+    return [dict(row) for row in rows]
+
+
+ # --- CREDENTIAL OPERATIONS ---
+def save_credential(conn, credential_id: bytes, user_id: str, public_key: bytes, sign_count: int, transports: list):
+    transports_json = json.dumps(transports)
+    conn.execute(insert_credential_query, (credential_id, user_id,          public_key, sign_count, transports_json))
+    conn.commit()
+
