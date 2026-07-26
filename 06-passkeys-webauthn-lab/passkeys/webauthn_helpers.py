@@ -9,10 +9,9 @@ from webauthn import (
 )
 from webauthn.helpers.structs import (
     UserVerificationRequirement,
-    AuthenticationCredential,
     PublicKeyCredentialDescriptor,
-    VerifiedAuthentication
 )
+from webauthn.authentication.verify_authentication_response import VerifiedAuthentication
 
 
 def begin_registration(user_name: str) -> tuple[dict, bytes]:
@@ -22,7 +21,7 @@ def begin_registration(user_name: str) -> tuple[dict, bytes]:
     user_name="alan",
 )
     challenge = options.challenge
-    return options_to_json(opVerifiedAuthenticationtions), challenge
+    return options_to_json(options), challenge
 
 def finish_registration(credential: dict, expected_challenge: bytes):
     try:
@@ -57,11 +56,11 @@ def finish_authentication(
     try:
         verification = verify_authentication_response(
             credential=credential,
-            expected_challenge=current_challenge,
-            expected_rp_id=rp_id,
-            expected_origin=origin,
-            credential_public_key=user_credential["public_key"],
-            credential_current_sign_count=user_credential["sign_count"],
+            expected_challenge=expected_challenge,
+            expected_rp_id="localhost",
+            expected_origin="http://localhost:8002",
+            credential_public_key=public_key,
+            credential_current_sign_count=sign_count,
             require_user_verification=True,
         )
     except Exception as err:

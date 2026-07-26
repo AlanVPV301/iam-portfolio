@@ -26,7 +26,7 @@ function bufferToBase64url(buffer) {
 
 
 function prepareRegistrationOptions(options) {
-  const publicKey = structuredClone(options);
+  const publicKey = structuredClone(options); //Clone to prevent mutating the original
   publicKey.challenge = bufferFromBase64url(publicKey.challenge);
   publicKey.user.id = bufferFromBase64url(publicKey.user.id);
   if (publicKey.excludeCredentials) {

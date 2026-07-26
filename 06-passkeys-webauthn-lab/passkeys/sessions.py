@@ -19,9 +19,9 @@ COOKIE_NAME = "_webauthn_tx"
 def bytes_to_base64url(value: bytes) -> str:
     return urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
 
-def save_registration_challenge(response: Response, challenge: bytes, user_name: str) -> None:
+def save_challenge(ceremony:str, response: Response, challenge: bytes, user_name: str) -> None:
     payload = {
-        "ceremony": "register",
+        "ceremony": ceremony,
         "challenge": bytes_to_base64url(challenge),
         "user_name": user_name,
     }
@@ -36,7 +36,7 @@ def save_registration_challenge(response: Response, challenge: bytes, user_name:
     
 
 
-def pop_registration_challenge(request: Request) -> tuple[bytes, str]:
+def pop_challenge(request: Request, expected_ceremony: str) -> tuple[bytes, str]:
     token = request.cookies.get(COOKIE_NAME)
     if not token:
         raise ValueError("missing cookie")
@@ -46,7 +46,7 @@ def pop_registration_challenge(request: Request) -> tuple[bytes, str]:
     except (BadSignature, SignatureExpired) as err:
         raise ValueError("invalid or expired cookie") from err
 
-    if payload.get("ceremony") != "register":
+    if payload.get("ceremony") != expected_ceremony:
         raise ValueError("wrong ceremony type")
 
     challenge = base64url_to_bytes(payload["challenge"])

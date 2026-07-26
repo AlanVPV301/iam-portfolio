@@ -33,6 +33,11 @@ insert_credential_query = """
     VALUES (?, ?, ?, ?, ?)    
 """
 
+update_sign_count_query = """
+    UPDATE credentials SET sign_count = ? WHERE credential_id = ?
+"""
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -62,6 +67,12 @@ def get_credentials_for_user(conn, user_id) -> dict | None:
     rows = cursor.fetchall()
     return [dict(row) for row in rows]
 
+def get_credential_by_id(conn, credential_id) -> dict | None:
+    cursor = conn.execute("SELECT * FROM credentials WHERE credential_id = ?", (credential_id,))
+    row = cursor.fetchone()
+    #Converts the row to a dict if it exists, otherwise returns None
+    return dict(row) if row else None
+
 
  # --- CREDENTIAL OPERATIONS ---
 def save_credential(conn, credential_id: bytes, user_id: str, public_key: bytes, sign_count: int, transports: list):
@@ -69,3 +80,6 @@ def save_credential(conn, credential_id: bytes, user_id: str, public_key: bytes,
     conn.execute(insert_credential_query, (credential_id, user_id,          public_key, sign_count, transports_json))
     conn.commit()
 
+def update_sign_count(conn, credential_id, sign_count):
+    conn.execute(update_sign_count_query, (sign_count, credential_id))
+    conn.commit()

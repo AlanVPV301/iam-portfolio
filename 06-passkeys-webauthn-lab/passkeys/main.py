@@ -9,11 +9,14 @@ from fastapi import FastAPI, Depends, HTTPException, status, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from webauthn import base64url_to_bytes
+from webauthn.helpers.structs import AuthenticatorTransport, PublicKeyCredentialDescriptor
+import logging
 
 
-from passkeys.sessions import save_registration_challenge, pop_registration_challenge
+from passkeys.sessions import save_challenge, pop_challenge
 from passkeys import db
-from passkeys.webauthn_helpers import begin_registration, finish_registration
+from passkeys.webauthn_helpers import begin_registration, finish_registration, begin_authentication, finish_authentication
 
 load_dotenv()
 
@@ -26,6 +29,18 @@ app = FastAPI(
     description="WebAuthN lab",
     version="0.1.0",
 )
+
+
+# Configure basic formatting for your application console
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+)
+
+# Force the py_webauthn logger to reveal deep structural insights
+webauthn_logger = logging.getLogger("webauthn")
+webauthn_logger.setLevel(logging.DEBUG)
+
 
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
@@ -60,15 +75,15 @@ def home(request: Request):
     )
 
 @app.post("/webauthn/register/options")
-def register_options(request: Request, response: Response):
+def register_options(response: Response):
     options_json, challenge = begin_registration(user_name="alan")
-    save_registration_challenge(response, challenge, user_name="alan")  # cookie or store
+    save_challenge("register", response, challenge, user_name="alan")  # cookie or store
     return options_json
 
 
 @app.post("/webauthn/register/verify")
 def register_verify(request: Request, response: Response, credential: dict):
-    challenge, user_name = pop_registration_challenge(request)
+    challenge, user_name = pop_challenge(request, "register")
     response.delete_cookie("_webauthn_tx")
 
     result = finish_registration(credential, expected_challenge=challenge)
@@ -92,3 +107,59 @@ def register_verify(request: Request, response: Response, credential: dict):
     )
 
     return {"ok": True, "credential_id_len": len(result.credential_id)}
+
+@app.post("/webauthn/login/options")
+def login_options(response: Response): 
+    conn = db.get_connection(DATABASE_PATH)
+    user_id = "IDTEST1"
+
+
+    rows = db.get_credentials_for_user(conn, user_id)
+    if not rows:
+        raise HTTPException(404, "No passkeys for user")
+
+    allow_credentials = []
+    #convert the transport strings (internal, hybrid, etc) into typed enum values for the allowed credentials
+    for row in rows:
+        raw_transports = json.loads(row["transports"]) if row["transports"] else None
+        transports = (
+            [AuthenticatorTransport(t) for t in raw_transports]
+            if raw_transports
+            else None
+        )
+        allow_credentials.append(
+            PublicKeyCredentialDescriptor(
+                id=row["credential_id"],
+                transports=transports,
+            )
+        )
+    options_json, challenge = begin_authentication(user_id, allow_credentials)
+    save_challenge("login", response, challenge, "alanvpv.test@test.com")
+    return options_json
+
+@app.post("/webauthn/login/verify")
+def login_verify(request: Request, response: Response, credential: dict):
+    challenge, user_name = pop_challenge(request, "login")
+    response.delete_cookie("_webauthn_tx")
+    conn = db.get_connection(DATABASE_PATH)
+    credential_id = base64url_to_bytes(credential["rawId"])
+    
+    row = db.get_credential_by_id(conn, credential_id)
+    if not row:
+        raise HTTPException(404, "Unknown passkey")
+
+    verification = finish_authentication(
+        credential,
+        expected_challenge=challenge,
+        public_key=row["public_key"],
+        sign_count=row["sign_count"],
+    )
+
+    if isinstance(verification, dict):
+        raise HTTPException(status_code=400, detail=verification.get("msg"))
+
+    #Update the sign count based on the updated value from the VerifiedAuthentication result object
+    db.update_sign_count(conn, verification.credential_id, verification.new_sign_count)
+
+
+    return {"ok": True}
