@@ -17,9 +17,6 @@ from webauthn.helpers.generate_user_handle import generate_user_handle
 from webauthn.helpers.bytes_to_base64url import bytes_to_base64url
 import logging
 from pydantic import BaseModel
-
-
-
 from passkeys.sessions import save_challenge, pop_challenge
 from passkeys import db
 from passkeys.webauthn_helpers import begin_registration, finish_registration, begin_authentication, finish_authentication
