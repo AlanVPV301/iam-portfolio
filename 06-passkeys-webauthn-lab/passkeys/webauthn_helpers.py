@@ -7,18 +7,26 @@ from webauthn import (
     generate_authentication_options
     
 )
+import os
 from webauthn.helpers.structs import (
     UserVerificationRequirement,
     PublicKeyCredentialDescriptor,
 )
 from webauthn.authentication.verify_authentication_response import VerifiedAuthentication
 
+RP_NAME = os.getenv("RP_NAME")
+RP_ID = os.getenv("RP_ID")
+ORIGIN = os.getenv("ORIGIN")
 
-def begin_registration(user_name: str) -> tuple[dict, bytes]:
+
+def begin_registration(user_name: str, user_id: bytes, display_name:str) -> tuple[dict, bytes]:
     options = generate_registration_options(
-    rp_id="localhost",
-    rp_name="FinFlow",
-    user_name="alan",
+    rp_id=RP_ID,
+    rp_name=RP_NAME,
+    user_id=user_id,
+    user_name=user_name,
+    user_display_name=display_name,
+
 )
     challenge = options.challenge
     return options_to_json(options), challenge
@@ -28,8 +36,8 @@ def finish_registration(credential: dict, expected_challenge: bytes):
         return verify_registration_response(
             credential=credential,
             expected_challenge=expected_challenge,
-            expected_origin="http://localhost:8002",
-            expected_rp_id="localhost",
+            expected_origin=ORIGIN,
+            expected_rp_id=RP_ID,
         )
     except Exception as err:
         return {"verified": False, "msg": str(err), "status": 400}
@@ -39,7 +47,7 @@ def finish_registration(credential: dict, expected_challenge: bytes):
 def begin_authentication(user_id: str, allow_credentials: list[PublicKeyCredentialDescriptor]) -> tuple[str|dict, bytes]:
 
     options = generate_authentication_options(
-        rp_id="localhost",
+        rp_id=RP_ID,
         allow_credentials=allow_credentials,
         user_verification=UserVerificationRequirement.PREFERRED,
     )   
@@ -57,8 +65,8 @@ def finish_authentication(
         verification = verify_authentication_response(
             credential=credential,
             expected_challenge=expected_challenge,
-            expected_rp_id="localhost",
-            expected_origin="http://localhost:8002",
+            expected_rp_id=RP_ID,
+            expected_origin=ORIGIN,
             credential_public_key=public_key,
             credential_current_sign_count=sign_count,
             require_user_verification=True,

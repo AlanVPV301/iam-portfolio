@@ -21,6 +21,33 @@
       <dd><code>{{ origin | default("http://localhost:8002") }}</code></dd>
     </dl>
 
+    <section class="panel user-form">
+      <h2 class="panel-title">Account</h2>
+      <p class="panel-hint">Used for WebAuthn registration and login lookup.</p>
+      <form id="userForm" class="user-form-fields">
+        <label class="field">
+          <span class="field-label">Username</span>
+          <input
+            type="text"
+            name="username"
+            placeholder="alanvpv.test@test.com"
+            autocomplete="username"
+            required
+          />
+        </label>
+        <label class="field">
+          <span class="field-label">Display name</span>
+          <input
+            type="text"
+            name="displayName"
+            placeholder="Alan VPV"
+            autocomplete="name"
+            required
+          />
+        </label>
+      </form>
+    </section>
+
     <div class="actions">
       <button type="button" class="primary" id="register-btn">Register passkey</button>
       <button type="button" id="login-btn" title="Coming in a later phase">Sign in</button>

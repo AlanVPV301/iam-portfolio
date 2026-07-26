@@ -56,6 +56,20 @@ function authenticationCredentialToJSON(credential) {
   };
 }
 
+async function parseOptionsResponse(resp) {
+  const payload = await resp.json();
+  if (!resp.ok) {
+    const detail = payload?.detail;
+    if (typeof detail === "string") throw new Error(detail);
+    if (Array.isArray(detail)) {
+      throw new Error(detail.map((item) => item.msg).join("; "));
+    }
+    throw new Error(resp.statusText || "Request failed");
+  }
+  if (typeof payload === "string") return JSON.parse(payload);
+  return payload;
+}
+
 document.getElementById("login-btn").addEventListener("click", async () => {
   if (!window.PublicKeyCredential) {
     log("WebAuthn is not available in this browser or context.");
@@ -68,18 +82,27 @@ document.getElementById("login-btn").addEventListener("click", async () => {
 
 
   try {
+    const form = document.getElementById("userForm");
+    const formData = new FormData(form);
+    const usernameValue = formData.get("username");
 
     const optionsResp = await fetch("/webauthn/login/options", {
       method: "POST",
       credentials: "same-origin",
-    });  
-    let optionsFromServer = await optionsResp.json();
-    if (typeof optionsFromServer === "string") optionsFromServer = JSON.parse(optionsFromServer);
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username: usernameValue }),
+    });
+
+    //Check for errors in the options call before proceeding, to catch issues such as user not found
+
+    const optionsFromServer = await parseOptionsResponse(optionsResp);
 
     console.log("options status", optionsResp.status);
     console.log("options raw", optionsFromServer);
     console.log("challenge", optionsFromServer.challenge);
     console.log("allowCredentials", optionsFromServer.allowCredentials);
+
+
     // 3. Request assertion (signature) from the user's device authenticator
     const assertion = await navigator.credentials.get({
       publicKey: prepareAuthenticationOptions(optionsFromServer)

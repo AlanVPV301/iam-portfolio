@@ -58,9 +58,16 @@ def init_db(db_path: str | None = None) -> None:
     with get_connection(db_path):
         pass
 
-def create_user(conn, username: str, display_name: str) -> None:
-    conn.execute(create_user_query, ("IDTEST1", username, display_name))
+def create_user(conn, user_id: str, username: str, display_name: str) -> None:
+    conn.execute(create_user_query, (user_id, username, display_name))
     conn.commit()
+
+def get_user_by_username(conn, username:str) -> dict | None:
+    cursor = conn.execute("SELECT * FROM users WHERE username = ?", (username,))
+    row = cursor.fetchone()
+    #Converts the row to a dict if it exists, otherwise returns None
+    return dict(row) if row else None
+
 
 def get_credentials_for_user(conn, user_id) -> dict | None:  
     cursor = conn.execute("SELECT * FROM credentials WHERE user_id = ?", (user_id,))

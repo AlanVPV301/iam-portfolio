@@ -5,20 +5,27 @@ from pathlib import Path
 import uuid
 from datetime import datetime, timezone
 from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, Depends, HTTPException, status, Request, Response
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from webauthn import base64url_to_bytes
 from webauthn.helpers.structs import AuthenticatorTransport, PublicKeyCredentialDescriptor
+from webauthn.helpers.generate_user_handle import generate_user_handle
+from webauthn.helpers.bytes_to_base64url import bytes_to_base64url
 import logging
+from pydantic import BaseModel
+
 
 
 from passkeys.sessions import save_challenge, pop_challenge
 from passkeys import db
 from passkeys.webauthn_helpers import begin_registration, finish_registration, begin_authentication, finish_authentication
+from passkeys.webauthn_helpers import RP_NAME, RP_ID, ORIGIN
 
-load_dotenv()
+
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", db.DATABASE_PATH)
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -67,17 +74,30 @@ def home(request: Request):
         request=request,
         name="index.html",
         context={
-            "rp_name": "FinFlow Passkeys Lab",
+            "rp_name": RP_NAME,
             "scenario": "happy",
-            "rp_id": "localhost",
-            "origin": "http://localhost:8002",
+            "rp_id": RP_ID,
+            "origin": ORIGIN,
         },
     )
 
+class OptionsBody(BaseModel):
+    username: str
+    display_name: str | None = None
+
 @app.post("/webauthn/register/options")
-def register_options(response: Response):
-    options_json, challenge = begin_registration(user_name="alan")
-    save_challenge("register", response, challenge, user_name="alan")  # cookie or store
+def register_options(response: Response, body: OptionsBody):
+    conn = db.get_connection(DATABASE_PATH) 
+    row = db.get_user_by_username(conn, body.username)
+    #Create user if not existing username, otherwise just load the user
+    if row is None:
+        user_id_bytes = generate_user_handle()
+        db.create_user(conn, bytes_to_base64url(user_id_bytes), body.username, body.display_name)
+    else:
+        user_id_bytes = base64url_to_bytes(row["id"])
+
+    options_json, challenge = begin_registration(body.username, user_id_bytes, body.display_name)
+    save_challenge("register", response, challenge, user_name=body.username)
     return options_json
 
 
@@ -92,8 +112,8 @@ def register_verify(request: Request, response: Response, credential: dict):
 
     conn = db.get_connection(DATABASE_PATH)
 
-    user_id = "IDTEST1"
-    db.create_user(conn, "alanvpv.test@test.com", "Alan VPV")
+    row = db.get_user_by_username(conn, user_name)
+    user_id = row["id"]   # already stored at options time
 
     transports = credential.get("response", {}).get("transports") or []
 
@@ -109,9 +129,12 @@ def register_verify(request: Request, response: Response, credential: dict):
     return {"ok": True, "credential_id_len": len(result.credential_id)}
 
 @app.post("/webauthn/login/options")
-def login_options(response: Response): 
+def login_options(response: Response, body: OptionsBody): 
     conn = db.get_connection(DATABASE_PATH)
-    user_id = "IDTEST1"
+    row = db.get_user_by_username(conn, body.username)
+    if not row:
+        raise HTTPException(404, "User not found, please register")
+    user_id = row["id"]
 
 
     rows = db.get_credentials_for_user(conn, user_id)
@@ -134,7 +157,7 @@ def login_options(response: Response):
             )
         )
     options_json, challenge = begin_authentication(user_id, allow_credentials)
-    save_challenge("login", response, challenge, "alanvpv.test@test.com")
+    save_challenge("login", response, challenge, body.username)
     return options_json
 
 @app.post("/webauthn/login/verify")

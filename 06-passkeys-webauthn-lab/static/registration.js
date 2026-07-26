@@ -71,10 +71,20 @@ document.getElementById("register-btn").addEventListener("click", async () => {
   btn.disabled = true;
 
   try {
+    const form = document.getElementById("userForm");
+    const formData = new FormData(form);
+    const usernameValue = formData.get("username");
+    const displayNameValue = formData.get("displayName");
+
     log("Requesting registration options…");
     const optionsResp = await fetch("/webauthn/register/options", {
       method: "POST",
       credentials: "same-origin", // required so the browser sends and stores the _webauthn_tx cookie from the server
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: usernameValue,
+        display_name: displayNameValue,
+      }),
     });
     if (!optionsResp.ok) {
       throw new Error(`Options failed: ${optionsResp.status} ${optionsResp.statusText}`);
