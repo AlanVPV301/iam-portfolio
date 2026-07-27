@@ -1,10 +1,12 @@
 import asyncio
 import json
 import os
+import secrets
 from pathlib import Path
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from orchestrator import db, engine, locks
 from orchestrator.models import HREvent
@@ -14,6 +16,24 @@ from orchestrator.connectors import scim
 load_dotenv()
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", db.DATABASE_PATH)
+
+# Inbound credential for this API — distinct from SCIM_BEARER_TOKEN, which is sent outbound
+ORCHESTRATOR_BEARER_TOKEN = os.getenv("ORCHESTRATOR_BEARER_TOKEN")
+if not ORCHESTRATOR_BEARER_TOKEN:
+    raise RuntimeError("ORCHESTRATOR_BEARER_TOKEN is missing from .env")
+
+security_scheme = HTTPBearer()
+
+
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security_scheme)):
+    if not secrets.compare_digest(credentials.credentials, ORCHESTRATOR_BEARER_TOKEN):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return credentials.credentials
+
 
 app = FastAPI(
     title="FinFlow Lifecycle Orchestrator",
@@ -40,7 +60,7 @@ def health():
 
 
 @app.get("/persons")
-def persons(employee_id: str | None = None):
+def persons(employee_id: str | None = None, token: str = Depends(verify_token)):
     with db.get_connection(DATABASE_PATH) as conn:
         if employee_id:
             return db.get_person_by_id(conn, employee_id)
@@ -48,7 +68,7 @@ def persons(employee_id: str | None = None):
 
 
 @app.get("/hr_events")
-def hr_events(event_id: str | None = None):
+def hr_events(event_id: str | None = None, token: str = Depends(verify_token)):
     with db.get_connection(DATABASE_PATH) as conn:
         if event_id:
             return db.get_hr_event_by_event_id(conn, event_id)
@@ -56,7 +76,7 @@ def hr_events(event_id: str | None = None):
 
 
 @app.get("/audit_events")
-def audit_events(employee_id: str | None = None):
+def audit_events(employee_id: str | None = None, token: str = Depends(verify_token)):
     with db.get_connection(DATABASE_PATH) as conn:
         if employee_id:
             return db.get_audit_events(conn, employee_id)
@@ -65,7 +85,7 @@ def audit_events(employee_id: str | None = None):
 
 # HR event ingestion endpoint, goes through the model validation and parsing before upserting to the database
 @app.post("/hr/events", status_code=201)
-async def ingest_hr_event(event: HREvent):
+async def ingest_hr_event(event: HREvent, token: str = Depends(verify_token)):
     #(model_dump() turns the Pydantic model into a dict for the person parameter.)
     incoming = event.model_dump()
 

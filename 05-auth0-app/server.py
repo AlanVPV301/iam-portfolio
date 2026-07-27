@@ -2,7 +2,6 @@
 # framework. For FastAPI, see: https://github.com/auth0/auth0-fastapi
 import json
 from os import environ as env
-from urllib.parse import urlparse
 
 from auth0_server_python.auth_server.server_client import ServerClient
 from auth0_server_python.auth_types import LogoutOptions, StartInteractiveLoginOptions, StateData, TransactionData
@@ -171,5 +170,7 @@ async def payroll():
 
 
 if __name__ == "__main__":
-    url = urlparse(env.get("APP_BASE_URL"))
-    app.run(host=url.hostname, port=url.port or 5000)
+    app.run(
+        host=env.get("HOST", "127.0.0.1"),
+        port=int(env.get("PORT", "5000")),
+    )

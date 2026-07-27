@@ -121,7 +121,7 @@ document.getElementById("login-btn").addEventListener("click", async () => {
       throw new Error(result.detail || result.msg || verifyResponse.statusText);
     }
 
-    log({ status: "logged in", result });
+    await renderSession();
   } catch (err) {
     log({ status: "error", message: err.message || String(err) });
   } finally {
@@ -129,3 +129,19 @@ document.getElementById("login-btn").addEventListener("click", async () => {
   }
 
 });
+
+async function renderSession() {
+  try {
+    const resp = await fetch("/me", { credentials: "same-origin" });
+    const payload = await resp.json();
+    log(
+      resp.ok
+        ? { status: "signed in", user_name: payload.user_name }
+        : { status: "signed out" }
+    );
+  } catch (err) {
+    log({ status: "error", message: err.message || String(err) });
+  }
+}
+
+renderSession();

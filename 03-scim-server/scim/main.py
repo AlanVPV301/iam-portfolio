@@ -15,6 +15,8 @@ from scim.models import SCIMUser, ScimMeta, ScimPatchPayload
 load_dotenv()
 
 DATABASE_PATH = os.getenv("DATABASE_PATH", db.DATABASE_PATH)
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://127.0.0.1:8001").rstrip("/")
+
 
 app = FastAPI(
     title="FinFlow SCIM Server",
@@ -44,6 +46,8 @@ security_scheme = HTTPBearer()
 
 # 2. Use the SCIM_BEARER_TOKEN environment variable to validate the token
 API_BEARER_TOKEN = os.getenv("SCIM_BEARER_TOKEN", "")
+if not API_BEARER_TOKEN:
+    raise RuntimeError("SESSION_SECRET is missing from .env")
 
 # 3. Create a dependency function to validate the token
 def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security_scheme)):
@@ -69,7 +73,8 @@ def row_to_scim_user(row: dict) -> SCIMUser:
             resourceType="User",
             created=datetime.fromisoformat(row["created_at"]),
             lastModified=datetime.fromisoformat(row["updated_at"]),
-            location=f"http://127.0.0.1:8000/scim/v2/Users/{row['id']}",
+            location=f"{PUBLIC_BASE_URL}/scim/v2/Users/{row['id']}",
+
         ),
     )
 
@@ -110,10 +115,12 @@ def list_users(
 ):
     with db.get_connection(DATABASE_PATH) as conn:
         if filter is None:
-            # optional: return all users, or empty list
-            rows = []
+            rows = db.list_all_users(conn)
         else:
-            attr, value = parse_filter(filter)
+            try:
+                attr, value = parse_filter(filter)
+            except ValueError as err:
+                raise HTTPException(status_code=400, detail=str(err)) from err
             if attr == "userName":
                 row = db.get_user_by_user_name(conn, value)
             elif attr == "externalId":
@@ -122,11 +129,15 @@ def list_users(
                 raise HTTPException(400, detail=f"unsupported filter attribute: {attr}")
             rows = [row] if row else []
 
-    #Loop through the results, format in SCIM response
-    resources = [row_to_scim_user(r).model_dump(mode="json") for r in rows]
+    #startIndex is 1-based per SCIM, so totalResults counts every match and Resources holds one page
+    total_results = len(rows)
+    start = max(startIndex - 1, 0)
+    page = rows[start : start + count]
+
+    resources = [row_to_scim_user(r).model_dump(mode="json") for r in page]
     return {
         "schemas": ["urn:ietf:params:scim:api:messages:2.0:ListResponse"],
-        "totalResults": len(resources),
+        "totalResults": total_results,
         "startIndex": startIndex,
         "itemsPerPage": len(resources),
         "Resources": resources,
@@ -147,7 +158,7 @@ def create_user(user: SCIMUser, token: str = Depends(verify_token)):
             resourceType="User",
             created=datetime.now(timezone.utc),
             lastModified=datetime.now(timezone.utc),
-            location=f"http://127.0.0.1:8000/scim/v2/Users/{user.id}",
+            location=f"{PUBLIC_BASE_URL}/scim/v2/Users/{user.id}",
 )
 
         db.create_user(conn, user)   # DB stores created_at/updated_at, not meta blob

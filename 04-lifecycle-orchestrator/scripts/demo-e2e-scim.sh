@@ -6,6 +6,7 @@
 #   cd 04-lifecycle-orchestrator && uvicorn orchestrator.main:app --port 8000 --reload
 #
 # Same SCIM_BEARER_TOKEN in both .env files.
+#   export ORCH_TOKEN="$(grep '^ORCHESTRATOR_BEARER_TOKEN=' .env | cut -d= -f2-)"
 #
 # Usage:
 #   ./scripts/demo-e2e-scim.sh           # keep existing DBs
@@ -18,6 +19,7 @@ SCIM_ROOT="$(cd "${ROOT}/../03-scim-server" && pwd)"
 
 ORCH_URL="${ORCH_URL:-http://127.0.0.1:8000}"
 SCIM_URL="${SCIM_URL:-http://127.0.0.1:8001}"
+ORCH_TOKEN="${ORCH_TOKEN:?Set ORCH_TOKEN from .env ORCHESTRATOR_BEARER_TOKEN}"
 
 require_health() {
   local name="$1"
@@ -44,7 +46,7 @@ curl -sS "${SCIM_URL}/health" | python3 -m json.tool
 echo
 
 echo "=== Orchestrator lifecycle demo (HR → plan → SCIM) ==="
-BASE_URL="${ORCH_URL}" "${ROOT}/scripts/simulate-event.sh"
+BASE_URL="${ORCH_URL}" ORCH_TOKEN="${ORCH_TOKEN}" "${ROOT}/scripts/simulate-event.sh"
 
 echo "=== SCIM SQLite — users provisioned by orchestrator ==="
 SCIM_DB="${SCIM_ROOT}/data/scim.db"

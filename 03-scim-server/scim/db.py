@@ -72,6 +72,11 @@ def get_user_by_id(conn, user_id) -> dict | None:
     #Converts the row to a dict if it exists, otherwise returns None
     return dict(row) if row else None
 
+#Unfiltered listing for GET /Users — stable order so pagination is repeatable
+def list_all_users(conn) -> list[dict]:
+    cursor = conn.execute("SELECT * FROM users ORDER BY user_name")
+    return [dict(row) for row in cursor.fetchall()]
+
 
 def create_user(conn, SCIMUser: SCIMUser) -> None:
     conn.execute(create_user_query, (SCIMUser.id, SCIMUser.externalId, SCIMUser.userName, SCIMUser.name.givenName, SCIMUser.name.familyName, SCIMUser.active, json.dumps(SCIMUser.roles) if SCIMUser.roles else "[]", utc_now(), utc_now()))

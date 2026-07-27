@@ -2,7 +2,7 @@
 # FinFlow SCIM demo: create → filter → GET → PATCH → deactivate
 #
 # Prerequisites:
-#   uvicorn scim.main:app --reload
+#   uvicorn scim.main:app --reload --port 8001
 #   export TOKEN="$(grep '^SCIM_BEARER_TOKEN=' .env | cut -d= -f2-)"
 #
 # Usage (fresh DB optional: rm -f data/scim.db):
@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
+BASE_URL="${BASE_URL:-http://127.0.0.1:8001}"
 SCIM="${BASE_URL}/scim/v2"
 AUTH=(-H "Authorization: Bearer ${TOKEN:?Set TOKEN from .env SCIM_BEARER_TOKEN}")
 

@@ -21,6 +21,17 @@ TENANT_ID    = os.environ["ENTRA_TENANT_ID"]
 CLIENT_ID    = os.environ["ENTRA_CLIENT_ID"]
 REDIRECT_URI = os.environ["REDIRECT_URI"]
 
+
+def _default_post_logout_redirect_uri(redirect_uri: str) -> str:
+    base = redirect_uri.removesuffix("/callback").rstrip("/")
+    return f"{base}/"
+
+
+POST_LOGOUT_REDIRECT_URI = os.environ.get(
+    "POST_LOGOUT_REDIRECT_URI",
+    _default_post_logout_redirect_uri(REDIRECT_URI),
+)
+
 AUTHORIZATION_ENDPOINT = (
     f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/authorize"
 )
@@ -187,9 +198,13 @@ def logout():
     session.clear()
     logout_url = (
         f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/logout"
-        f"?post_logout_redirect_uri=http://localhost:5000/"
+        f"?{urlencode({'post_logout_redirect_uri': POST_LOGOUT_REDIRECT_URI})}"
     )
     return redirect(logout_url)
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(
+        host=os.getenv("HOST", "127.0.0.1"),
+        port=int(os.getenv("PORT", "5000")),
+        debug=os.getenv("FLASK_DEBUG") == "1",
+    )

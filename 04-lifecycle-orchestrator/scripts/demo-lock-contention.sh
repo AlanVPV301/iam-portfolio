@@ -3,6 +3,7 @@
 #
 # Prerequisites:
 #   uvicorn orchestrator.main:app --reload
+#   export ORCH_TOKEN="$(grep '^ORCHESTRATOR_BEARER_TOKEN=' .env | cut -d= -f2-)"
 #
 # Usage:
 #   rm -f data/orchestrator.db && uvicorn orchestrator.main:app --reload   # fresh DB
@@ -14,9 +15,11 @@ set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
 API="${BASE_URL}/hr/events"
+AUTH=(-H "Authorization: Bearer ${ORCH_TOKEN:?Set ORCH_TOKEN from .env ORCHESTRATOR_BEARER_TOKEN}")
 
 echo "=== 1. Background request (holds lock ~5s) ==="
 curl -sS -X POST "${API}" \
+  "${AUTH[@]}" \
   -H "Content-Type: application/json" \
   -d '{
   "event_id": "evt-lock-a",
@@ -35,6 +38,7 @@ sleep 0.5
 echo
 echo "=== 2. Concurrent request (expect HTTP 409 + Retry-After: 5) ==="
 LOCK_RESPONSE=$(curl -i -sS -X POST "${API}" \
+  "${AUTH[@]}" \
   -H "Content-Type: application/json" \
   -d '{
   "event_id": "evt-lock-b",
@@ -58,6 +62,7 @@ wait "${BG_PID}"
 
 echo "=== 3. Retry rejected event (expect 201) ==="
 curl -sS -X POST "${API}" \
+  "${AUTH[@]}" \
   -H "Content-Type: application/json" \
   -d '{
   "event_id": "evt-lock-b",

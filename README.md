@@ -27,6 +27,22 @@ The work here is done with the help of Cursor/Claude, official product and indus
 
 
 
+## Running the projects
+
+Each project has its own virtualenv and `.env` — see the per-project README. Commands are written in bash syntax; on fish, two of them differ:
+
+| bash | fish |
+| --- | --- |
+| `source .venv/bin/activate` | `source .venv/bin/activate.fish` |
+| `export TOKEN="value"` | `set -x TOKEN "value"` |
+
+Demo scripts under each `scripts/` directory have a bash shebang, so `./scripts/demo-*.sh` runs unchanged from any shell.
+
+
+---
+
+
+
 ## Background
 
 **Current role:** Tier 3 IAM Support Engineer. Previously Cloud Support Engineer 3 At SailPoint.

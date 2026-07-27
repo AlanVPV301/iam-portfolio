@@ -5,7 +5,8 @@
 #   Terminal 1: cd 03-scim-server && uvicorn scim.main:app --port 8001 --reload
 #   Terminal 2: cd 05-auth0-app && python server.py
 #   Auth0 Actions deployed (post-login + post-user-registration)
-#   Tunnel or public URL for SCIM if testing signup → SCIM Action
+#   Signup → SCIM Action needs a public SCIM URL in Action secret SCIM_URL
+#   (Render: https://scim.alanvpv.dev). Tunnel only if testing Actions against local SCIM.
 #
 # Usage:
 #   ./scripts/demo-auth0.sh

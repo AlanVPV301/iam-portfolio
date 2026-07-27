@@ -3,6 +3,7 @@
 #
 # Prerequisites:
 #   uvicorn orchestrator.main:app --reload
+#   export ORCH_TOKEN="$(grep '^ORCHESTRATOR_BEARER_TOKEN=' .env | cut -d= -f2-)"
 #
 # Usage (fresh DB recommended: rm -f data/orchestrator.db):
 #   ./scripts/simulate-event.sh
@@ -14,12 +15,14 @@ set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
 API="${BASE_URL}/hr/events"
+AUTH=(-H "Authorization: Bearer ${ORCH_TOKEN:?Set ORCH_TOKEN from .env ORCHESTRATOR_BEARER_TOKEN}")
 
 post_event() {
   local label="$1"
   local json="$2"
   echo "=== ${label} ==="
   curl -sS -X POST "${API}" \
+    "${AUTH[@]}" \
     -H "Content-Type: application/json" \
     -d "${json}" | python3 -m json.tool
   echo
@@ -97,6 +100,7 @@ post_event "6. Idempotent replay — same event_id as step 1" '{
 
 echo "=== 7. Lock — background Bob event (holds lock ~5s) ==="
 curl -sS -X POST "${API}" \
+  "${AUTH[@]}" \
   -H "Content-Type: application/json" \
   -d '{
   "event_id": "evt-sim-007-bob-lock-a",
@@ -115,6 +119,7 @@ sleep 0.5
 echo
 echo "=== 8. Lock — concurrent Bob event (expect 409 + Retry-After: 5) ==="
 curl -i -sS -X POST "${API}" \
+  "${AUTH[@]}" \
   -H "Content-Type: application/json" \
   -d '{
   "event_id": "evt-sim-008-bob-lock-b",
@@ -132,6 +137,7 @@ wait "${LOCK_BG_PID}"
 
 echo "=== 9. Lock — retry rejected event (expect 201) ==="
 curl -sS -X POST "${API}" \
+  "${AUTH[@]}" \
   -H "Content-Type: application/json" \
   -d '{
   "event_id": "evt-sim-008-bob-lock-b",
@@ -146,12 +152,12 @@ curl -sS -X POST "${API}" \
 echo
 
 echo "=== GET /persons ==="
-curl -sS "${BASE_URL}/persons" | python3 -m json.tool
+curl -sS "${AUTH[@]}" "${BASE_URL}/persons" | python3 -m json.tool
 echo
 
 echo "=== GET /hr_events ==="
-curl -sS "${BASE_URL}/hr_events" | python3 -m json.tool
+curl -sS "${AUTH[@]}" "${BASE_URL}/hr_events" | python3 -m json.tool
 echo
 
 echo "=== GET /audit_events ==="
-curl -sS "${BASE_URL}/audit_events" | python3 -m json.tool
+curl -sS "${AUTH[@]}" "${BASE_URL}/audit_events" | python3 -m json.tool

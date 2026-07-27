@@ -25,8 +25,11 @@ cd 04-lifecycle-orchestrator
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # set SCIM_BEARER_TOKEN (match 03-scim-server)
-uvicorn orchestrator.main:app --reload
+# SCIM_BASE_URL must match where project 3 is listening (local :8001 or public HTTPS)
+uvicorn orchestrator.main:app --reload --port 8000
 ```
+
+On fish: `source .venv/bin/activate.fish` (applies to the two-terminal setup below as well).
 
 - Health: http://127.0.0.1:8000/health
 - API docs: http://127.0.0.1:8000/docs

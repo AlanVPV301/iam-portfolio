@@ -1,6 +1,6 @@
 import json
 from scim.models import ScimPatchOperation
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 
 #Handles SCIM PATCH operation logic, loops through all the operations and updates the affected rows only
 def apply_patch_to_row(row: dict, operations: list[ScimPatchOperation]) -> dict:

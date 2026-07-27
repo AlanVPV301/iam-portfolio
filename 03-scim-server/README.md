@@ -31,6 +31,8 @@ cp .env.example .env
 uvicorn scim.main:app --reload --port 8001
 ```
 
+On fish: `source .venv/bin/activate.fish`.
+
 - Health: http://127.0.0.1:8001/health
 - API docs: http://127.0.0.1:8001/docs
 
@@ -45,6 +47,8 @@ export TOKEN="$(grep '^SCIM_BEARER_TOKEN=' .env | cut -d= -f2-)"
 rm -f data/scim.db          # restart uvicorn after delete
 ./scripts/demo-scim.sh
 ```
+
+On fish, set the token with `set -x TOKEN (grep '^SCIM_BEARER_TOKEN=' .env | cut -d= -f2-)`.
 
 ---
 

@@ -4,6 +4,7 @@
 import argparse
 import csv
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -44,6 +45,15 @@ def main() -> int:
     )
     args = parser.parse_args()
 
+    token = os.getenv("ORCH_TOKEN")
+    if not token:
+        print(
+            "ORCH_TOKEN is not set. Export it from .env ORCHESTRATOR_BEARER_TOKEN.",
+            file=sys.stderr,
+        )
+        return 1
+    headers = {"Authorization": f"Bearer {token}"}
+
     csv_path = Path(args.csv_path)
     if not csv_path.exists():
         print(f"CSV not found: {csv_path}", file=sys.stderr)
@@ -60,7 +70,7 @@ def main() -> int:
 
     for index, row in enumerate(rows, start=1):
         payload = row_to_payload(row)
-        response = requests.post(args.url, json=payload, timeout=30)
+        response = requests.post(args.url, json=payload, headers=headers, timeout=30)
 
         try:
             body = response.json()

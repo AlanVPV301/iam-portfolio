@@ -17,7 +17,7 @@ from webauthn.helpers.generate_user_handle import generate_user_handle
 from webauthn.helpers.bytes_to_base64url import bytes_to_base64url
 import logging
 from pydantic import BaseModel
-from passkeys.sessions import save_challenge, pop_challenge
+from passkeys.sessions import save_challenge, pop_challenge, save_session, load_session
 from passkeys import db
 from passkeys.webauthn_helpers import begin_registration, finish_registration, begin_authentication, finish_authentication
 from passkeys.webauthn_helpers import RP_NAME, RP_ID, ORIGIN
@@ -78,29 +78,42 @@ def home(request: Request):
         },
     )
 
+@app.get("/me")
+def me(request: Request):
+    session = load_session(request)
+    if not session:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {"authenticated": True, "user_name": session["user_name"]}
+
 class OptionsBody(BaseModel):
     username: str
     display_name: str | None = None
 
 @app.post("/webauthn/register/options")
 def register_options(response: Response, body: OptionsBody):
+    #WebAuthn requires a non-empty displayName, and the column is NOT NULL
+    display_name = body.display_name or body.username
     conn = db.get_connection(DATABASE_PATH) 
     row = db.get_user_by_username(conn, body.username)
     #Create user if not existing username, otherwise just load the user
     if row is None:
         user_id_bytes = generate_user_handle()
-        db.create_user(conn, bytes_to_base64url(user_id_bytes), body.username, body.display_name)
+        db.create_user(conn, bytes_to_base64url(user_id_bytes), body.username, display_name)
     else:
         user_id_bytes = base64url_to_bytes(row["id"])
 
-    options_json, challenge = begin_registration(body.username, user_id_bytes, body.display_name)
+    options_json, challenge = begin_registration(body.username, user_id_bytes, display_name)
     save_challenge("register", response, challenge, user_name=body.username)
     return options_json
 
 
 @app.post("/webauthn/register/verify")
 def register_verify(request: Request, response: Response, credential: dict):
-    challenge, user_name = pop_challenge(request, "register")
+    #A stale or tampered challenge cookie is a client problem, not a server fault
+    try:
+        challenge, user_name = pop_challenge(request, "register")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=f"Registration challenge {err}") from err
     response.delete_cookie("_webauthn_tx")
 
     result = finish_registration(credential, expected_challenge=challenge)
@@ -159,20 +172,23 @@ def login_options(response: Response, body: OptionsBody):
 
 @app.post("/webauthn/login/verify")
 def login_verify(request: Request, response: Response, credential: dict):
-    challenge, user_name = pop_challenge(request, "login")
+    try:
+        challenge, user_name = pop_challenge(request, "login")
+    except ValueError as err:
+        raise HTTPException(status_code=400, detail=f"Login challenge {err}") from err
     response.delete_cookie("_webauthn_tx")
     conn = db.get_connection(DATABASE_PATH)
     credential_id = base64url_to_bytes(credential["rawId"])
     
-    row = db.get_credential_by_id(conn, credential_id)
-    if not row:
+    credential_row = db.get_credential_by_id(conn, credential_id)
+    if not credential_row:
         raise HTTPException(404, "Unknown passkey")
 
     verification = finish_authentication(
         credential,
         expected_challenge=challenge,
-        public_key=row["public_key"],
-        sign_count=row["sign_count"],
+        public_key=credential_row["public_key"],
+        sign_count=credential_row["sign_count"],
     )
 
     if isinstance(verification, dict):
@@ -181,5 +197,9 @@ def login_verify(request: Request, response: Response, credential: dict):
     #Update the sign count based on the updated value from the VerifiedAuthentication result object
     db.update_sign_count(conn, verification.credential_id, verification.new_sign_count)
 
+    user = db.get_user_by_username(conn, user_name)
+    if not user or user["id"] != credential_row["user_id"]:
+        raise HTTPException(status_code=400, detail="Passkey does not belong to this user")
+    save_session(response, user_name, credential_row["user_id"])
 
     return {"ok": True}
