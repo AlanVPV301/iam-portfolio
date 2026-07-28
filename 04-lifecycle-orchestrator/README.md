@@ -31,8 +31,8 @@ uvicorn orchestrator.main:app --reload --port 8000
 
 On fish: `source .venv/bin/activate.fish` (applies to the two-terminal setup below as well).
 
-- Health: http://127.0.0.1:8000/health
-- API docs: http://127.0.0.1:8000/docs
+- Health: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+- API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
 
@@ -59,19 +59,33 @@ Or keep existing DBs: `./scripts/demo-e2e-scim.sh`
 
 ## Demo scripts
 
+All of these need `ORCH_TOKEN` exported — the API routes are bearer-authenticated:
+
 ```bash
+export ORCH_TOKEN="$(grep '^ORCHESTRATOR_BEARER_TOKEN=' .env | cut -d= -f2-)"
+
 ./scripts/demo-e2e-scim.sh --fresh      # orchestrator + SCIM e2e (both servers required)
 ./scripts/simulate-event.sh           # JML + replay + lock + SCIM provision
 ./scripts/demo-lock-contention.sh     # lock-only (409 + retry)
 python3 scripts/import-hr-csv.py hr/demo-events.csv
+./scripts/prime-demo.sh               # wake + rebuild the deployed demo state
 ```
 
-| Script | Purpose |
-|---|---|
-| `demo-e2e-scim.sh` | Preflight both APIs, run full simulate-event, verify SCIM DB |
-| `simulate-event.sh` | Full walkthrough including SCIM side effects |
-| `demo-lock-contention.sh` | Per-identity lock demo only |
-| `import-hr-csv.py` | POST rows from `hr/demo-events.csv` |
+On fish: `set -x ORCH_TOKEN (grep '^ORCHESTRATOR_BEARER_TOKEN=' .env | cut -d= -f2-)`.
+
+
+| Script                    | Purpose                                                        |
+| ------------------------- | -------------------------------------------------------------- |
+| `demo-e2e-scim.sh`        | Preflight both APIs, run full simulate-event, verify SCIM DB   |
+| `simulate-event.sh`       | Full walkthrough including SCIM side effects                   |
+| `demo-lock-contention.sh` | Per-identity lock demo only                                    |
+| `import-hr-csv.py`        | POST rows from `hr/demo-events.csv`                            |
+| `prime-demo.sh`           | Wake the deployed services and rebuild SCIM state from the CSV |
+
+
+`prime-demo.sh` also needs `SCIM_TOKEN`, and targets the public deployment by
+default. Point it at localhost with
+`ORCH_URL=http://127.0.0.1:8000 SCIM_URL=http://127.0.0.1:8001 ./scripts/prime-demo.sh`.
 
 ---
 
@@ -93,12 +107,15 @@ python3 scripts/import-hr-csv.py hr/demo-events.csv
 
 ## SailPoint mapping
 
-| This project | SailPoint equivalent |
-|---|---|
-| HR CSV / API | Authoritative source |
-| `persons` | Identity profile |
-| JML detection | Lifecycle events |
-| `birthright.yaml` | Provisioning policy |
+
+| This project         | SailPoint equivalent        |
+| -------------------- | --------------------------- |
+| HR CSV / API         | Authoritative source        |
+| `persons`            | Identity profile            |
+| JML detection        | Lifecycle events            |
+| `birthright.yaml`    | Provisioning policy         |
 | `connectors/scim.py` | SCIM provisioning connector |
-| `audit_events` | Audit trail |
-| Per-employee lock | Identity processing mutex |
+| `audit_events`       | Audit trail                 |
+| Per-employee lock    | Identity processing mutex   |
+
+
