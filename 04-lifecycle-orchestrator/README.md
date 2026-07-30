@@ -18,6 +18,8 @@ Event-driven joiner / mover / leaver (JML) orchestration for a fictional HR sour
 
 ---
 
+
+
 ## Quick start
 
 ```bash
@@ -32,9 +34,11 @@ uvicorn orchestrator.main:app --reload --port 8000
 On fish: `source .venv/bin/activate.fish` (applies to the two-terminal setup below as well).
 
 - Health: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
-- API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- Swagger API docs: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
+
+
 
 ## End-to-end with SCIM (Project 3)
 
@@ -56,6 +60,8 @@ uvicorn orchestrator.main:app --port 8000 --reload
 Or keep existing DBs: `./scripts/demo-e2e-scim.sh`
 
 ---
+
+
 
 ## Demo scripts
 
@@ -89,6 +95,8 @@ default. Point it at localhost with
 
 ---
 
+
+
 ## Layout
 
 ```
@@ -104,6 +112,8 @@ default. Point it at localhost with
 ```
 
 ---
+
+
 
 ## SailPoint mapping
 

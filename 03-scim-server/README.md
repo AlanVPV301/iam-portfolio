@@ -21,6 +21,8 @@ Inbound SCIM 2.0 server for FinFlow Ltd custom apps. Bearer-authenticated REST A
 
 ---
 
+
+
 ## Quick start
 
 ```bash
@@ -34,11 +36,13 @@ uvicorn scim.main:app --reload --port 8001
 On fish: `source .venv/bin/activate.fish`.
 
 - Health: [http://127.0.0.1:8001/health](http://127.0.0.1:8001/health)
-- API docs: [http://127.0.0.1:8001/docs](http://127.0.0.1:8001/docs)
+- Swagger API docs: [http://127.0.0.1:8001/docs](http://127.0.0.1:8001/docs)
 
 Use port **8001** when running alongside the orchestrator on **8000**.
 
 ---
+
+
 
 ## Demo
 
@@ -51,6 +55,8 @@ rm -f data/scim.db          # restart uvicorn after delete
 On fish, set the token with `set -x TOKEN (grep '^SCIM_BEARER_TOKEN=' .env | cut -d= -f2-)`.
 
 ---
+
+
 
 ## Deploy — the store is disposable
 
@@ -93,6 +99,8 @@ none:
 | Every 14 min, 10h/day | ~310 of 750     | Leaves headroom for the other three services                                            |
 
 
+
+
 ### Why the system wake/prime cannot be triggered from the Auth0 Action directly
 
 Auth0 terminates an Action after **20 seconds** and the limit is not
@@ -102,6 +110,8 @@ spin-up rather than refusing it, so the request is already waiting. Provisioning
 from Auth0 therefore only works inside the warm window.
 
 ---
+
+
 
 ## Layout
 
@@ -118,6 +128,8 @@ from Auth0 therefore only works inside the warm window.
 ```
 
 ---
+
+
 
 ## SailPoint mapping
 
