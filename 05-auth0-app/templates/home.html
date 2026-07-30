@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FinFlow Employee Portal</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div class="card">
+    <span class="tag">Auth0 lab</span>
+    <h1>FinFlow Employee Portal</h1>
+    <p class="subtitle">
+      Sign in with Auth0. Post-login Actions drive adaptive MFA and SCIM provisioning.
+    </p>
+
+    <div class="actions">
+      <a class="button primary" href="/login?screen_hint=signup">Sign up</a>
+      <a class="button" href="/login">Log in</a>
+    </div>
+
+    <p class="hint">Payroll requires a step-up MFA challenge after login.</p>
+  </div>
+</body>
+</html>

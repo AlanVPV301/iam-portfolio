@@ -10,7 +10,7 @@
   <div class="card">
     <span class="tag">WebAuthn lab</span>
     <h1>{{ rp_name | default("FinFlow Passkeys Lab") }}</h1>
-    <p class="subtitle">Register a passkey against this Relying Party.</p>
+    <p class="subtitle">Register a passkey against this Relying Party, then sign in with it.</p>
 
     <dl>
       <dt>Scenario</dt>
@@ -21,10 +21,38 @@
       <dd><code>{{ origin | default("http://localhost:8002") }}</code></dd>
     </dl>
 
-    <section class="panel user-form">
-      <h2 class="panel-title">Account</h2>
-      <p class="panel-hint">Used for WebAuthn registration and login lookup.</p>
-      <form id="userForm" class="user-form-fields">
+    <div class="tabs" role="tablist" aria-label="Passkey ceremony">
+      <button
+        type="button"
+        class="tab active"
+        role="tab"
+        id="tab-register"
+        aria-selected="true"
+        aria-controls="panel-register"
+      >
+        Register
+      </button>
+      <button
+        type="button"
+        class="tab"
+        role="tab"
+        id="tab-login"
+        aria-selected="false"
+        aria-controls="panel-login"
+      >
+        Sign in
+      </button>
+    </div>
+
+    <section
+      class="panel tab-panel"
+      id="panel-register"
+      role="tabpanel"
+      aria-labelledby="tab-register"
+    >
+      <h2 class="panel-title">Create account</h2>
+      <p class="panel-hint">Username and display name are stored with the new credential.</p>
+      <form id="registerForm" class="user-form-fields">
         <label class="field">
           <span class="field-label">Username</span>
           <input
@@ -46,17 +74,62 @@
           />
         </label>
       </form>
+      <div class="actions">
+        <button type="button" class="primary" id="register-btn">Register passkey</button>
+      </div>
     </section>
 
-    <div class="actions">
-      <button type="button" class="primary" id="register-btn">Register passkey</button>
-      <button type="button" id="login-btn" title="Coming in a later phase">Sign in</button>
-    </div>
+    <section
+      class="panel tab-panel"
+      id="panel-login"
+      role="tabpanel"
+      aria-labelledby="tab-login"
+      hidden
+    >
+      <h2 class="panel-title">Sign in</h2>
+      <p class="panel-hint">Use the username you registered with. No display name needed.</p>
+      <form id="loginForm" class="user-form-fields">
+        <label class="field">
+          <span class="field-label">Username</span>
+          <input
+            type="text"
+            name="username"
+            placeholder="alanvpv.test@test.com"
+            autocomplete="username"
+            required
+          />
+        </label>
+      </form>
+      <div class="actions">
+        <button type="button" class="primary" id="login-btn">Sign in</button>
+      </div>
+    </section>
 
     <pre id="output" aria-live="polite">Ready.</pre>
   </div>
 
   <script src="/static/registration.js" defer></script>
   <script src="/static/login.js" defer></script>
+  <script>
+    (function () {
+      const tabRegister = document.getElementById("tab-register");
+      const tabLogin = document.getElementById("tab-login");
+      const panelRegister = document.getElementById("panel-register");
+      const panelLogin = document.getElementById("panel-login");
+
+      function show(tab) {
+        const isRegister = tab === "register";
+        tabRegister.classList.toggle("active", isRegister);
+        tabLogin.classList.toggle("active", !isRegister);
+        tabRegister.setAttribute("aria-selected", String(isRegister));
+        tabLogin.setAttribute("aria-selected", String(!isRegister));
+        panelRegister.hidden = !isRegister;
+        panelLogin.hidden = isRegister;
+      }
+
+      tabRegister.addEventListener("click", () => show("register"));
+      tabLogin.addEventListener("click", () => show("login"));
+    })();
+  </script>
 </body>
 </html>

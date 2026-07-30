@@ -87,22 +87,21 @@ def me(request: Request):
 
 class OptionsBody(BaseModel):
     username: str
-    display_name: str | None = None
+    display_name: str
 
 @app.post("/webauthn/register/options")
 def register_options(response: Response, body: OptionsBody):
-    #WebAuthn requires a non-empty displayName, and the column is NOT NULL
-    display_name = body.display_name or body.username
+    # display_name is required — UI only collects it on the Register tab
     conn = db.get_connection(DATABASE_PATH) 
     row = db.get_user_by_username(conn, body.username)
     #Create user if not existing username, otherwise just load the user
     if row is None:
         user_id_bytes = generate_user_handle()
-        db.create_user(conn, bytes_to_base64url(user_id_bytes), body.username, display_name)
+        db.create_user(conn, bytes_to_base64url(user_id_bytes), body.username, body.display_name)
     else:
         user_id_bytes = base64url_to_bytes(row["id"])
 
-    options_json, challenge = begin_registration(body.username, user_id_bytes, display_name)
+    options_json, challenge = begin_registration(body.username, user_id_bytes, body.display_name)
     save_challenge("register", response, challenge, user_name=body.username)
     return options_json
 

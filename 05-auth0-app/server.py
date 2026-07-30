@@ -8,7 +8,6 @@ from auth0_server_python.auth_types import LogoutOptions, StartInteractiveLoginO
 from auth0_server_python.store.abstract import AbstractDataStore
 from dotenv import load_dotenv
 from flask import Flask, after_this_request, redirect, request, render_template
-from markupsafe import escape
 
 load_dotenv()
 
@@ -75,23 +74,21 @@ def auth0():
 @app.route("/")
 async def home():
     user = await auth0().get_user({"request": request})
+    notice = request.args.get("notice")
 
-    head = "<!DOCTYPE html><title>Auth0 Python Sample</title>"
-
+    #Check if there is a signed in user, then check if MFA is present in AMR, present the banner notice if not
     if user:
         mfa_completed = "mfa" in (user.get("amr") or [])
 
-        return render_template("dashboard.html",
+        return render_template(
+            "dashboard.html",
             name=user.get("name", ""),
             email=user.get("email", ""),
             mfa=mfa_completed,
+            notice=notice,
         )
-
-    return f"""
-        {head}
-        <a href="/login?screen_hint=signup">Signup</a>
-        <a href="/login">Login</a>
-    """
+    #If not signed in, loads the login/signup page
+    return render_template("home.html")
 
 
 def safe_return_path(path: str | None) -> str:
@@ -116,6 +113,16 @@ async def login():
         store_options={"request": request},
     )
     response = redirect(url)
+    if request.args.get("step_up") == "payroll":
+        response.set_cookie(
+            "_payroll_step_up",
+            "1",
+            httponly=True,
+            samesite="Lax",
+            secure=not env.get("APP_BASE_URL", "").startswith("http://"),
+            max_age=300,
+        )
+
     if request.args.get("returnTo"):
         response.set_cookie(
             "_return_to",
@@ -127,7 +134,7 @@ async def login():
         )
     return response
 
-
+#Auth0 sends back code + state. The SDK exchanges them, writes the session cookie, then redirects to _return_to (or /) and clears that cookie. Failures return 400.
 @app.route("/callback")
 async def callback():
     try:
@@ -151,22 +158,29 @@ async def logout():
     )
     return redirect(url)
 
-#Route protected by Auth0 post-login action/trigger, checks for MFA AMR, if not present, send step_up in the query params to trigger the challenge action
+# Route protected by Auth0 post-login action/trigger, checks for MFA AMR,
+# if not present, send step_up in the query params to trigger the challenge action
 @app.route("/payroll")
 async def payroll():
     user = await auth0().get_user({"request": request})
     if not user:
         return redirect("/login")
     mfa_completed = "mfa" in (user.get("amr") or [])
-    if not mfa_completed:
-        return redirect("/login?step_up=payroll&returnTo=/payroll")
-    return f"""
-        <!DOCTYPE html><title>FinFlow Payroll</title>
-        <p>Logged in as {escape(user.get("email", ""))}</p>
-        <h1>Payroll (step-up protected)</h1>
-        <p>Salary: $4,200/month (demo data)</p>
-        <a href="/">Home</a> · <a href="/logout">Logout</a>
-    """
+
+
+    if mfa_completed:
+        response = app.make_response(
+            render_template("payroll.html", email=user.get("email", ""))
+        )
+        response.delete_cookie("_payroll_step_up")
+        return response
+    # Failed step-up (came back without MFA) → enroll message
+    if request.cookies.get("_payroll_step_up") == "1":
+        response = redirect("/?notice=enroll_mfa")
+        response.delete_cookie("_payroll_step_up")
+        return response
+    # First click: stay on dashboard, don’t bounce to Auth0
+    return redirect("/?notice=payroll_mfa")
 
 
 if __name__ == "__main__":

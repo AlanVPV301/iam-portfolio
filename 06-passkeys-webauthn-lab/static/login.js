@@ -77,12 +77,15 @@ document.getElementById("login-btn").addEventListener("click", async () => {
   }
 
   const btn = document.getElementById("login-btn");
-  btn.disabled = false;
-
-
+  btn.disabled = true;
 
   try {
-    const form = document.getElementById("userForm");
+    const form = document.getElementById("loginForm");
+    if (!form.reportValidity()) {
+      btn.disabled = false;
+      return;
+    }
+
     const formData = new FormData(form);
     const usernameValue = formData.get("username");
 

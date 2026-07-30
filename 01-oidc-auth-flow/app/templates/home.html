@@ -2,11 +2,24 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>OIDC Demo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OIDC + PKCE Demo</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
-  <h1>OIDC + PKCE Demo</h1>
-  <p>Click below to start the authorization flow.</p>
-  <a href="/login">Sign in with Microsoft</a>
+  <div class="card">
+    <span class="tag">OIDC lab</span>
+    <h1>OIDC + PKCE Demo</h1>
+    <p class="subtitle">
+      Authorization Code flow with PKCE against Microsoft Entra ID — every step
+      is explicit in the Flask app (no auth SDK).
+    </p>
+
+    <div class="actions">
+      <a class="button primary" href="/login">Sign in with Microsoft</a>
+    </div>
+
+    <p class="hint">After login you’ll see the decoded ID token claims, then a protected profile.</p>
+  </div>
 </body>
 </html>

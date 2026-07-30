@@ -71,7 +71,12 @@ document.getElementById("register-btn").addEventListener("click", async () => {
   btn.disabled = true;
 
   try {
-    const form = document.getElementById("userForm");
+    const form = document.getElementById("registerForm");
+    if (!form.reportValidity()) {
+      btn.disabled = false;
+      return;
+    }
+
     const formData = new FormData(form);
     const usernameValue = formData.get("username");
     const displayNameValue = formData.get("displayName");

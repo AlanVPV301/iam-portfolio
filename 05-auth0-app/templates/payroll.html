@@ -3,27 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Profile — OIDC Demo</title>
+  <title>FinFlow Payroll</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
 </head>
 <body>
   <div class="card">
-    <span class="tag">Protected route</span>
-    <h1>{{ name }}</h1>
-    <p class="subtitle">Session from Entra ID after the OIDC code + PKCE exchange.</p>
+    <span class="tag">Step-up protected</span>
+    <h1>Payroll</h1>
+    <p class="subtitle">This route requires MFA in the current session (amr includes mfa).</p>
 
     <dl>
-      <dt>Email</dt>
+      <dt>Signed in as</dt>
       <dd>{{ email }}</dd>
-      <dt>Object ID</dt>
-      <dd>{{ oid }}</dd>
-      <dt>Token expires</dt>
-      <dd>{{ expires_at }}</dd>
+      <dt>Salary</dt>
+      <dd>$4,200/month (demo data)</dd>
     </dl>
 
     <div class="actions">
       <a class="button primary" href="/">Home</a>
-      <a class="button" href="/logout">Sign out</a>
+      <a class="button" href="/logout">Log out</a>
     </div>
   </div>
 </body>
