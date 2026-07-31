@@ -8,6 +8,8 @@ from auth0_server_python.auth_types import LogoutOptions, StartInteractiveLoginO
 from auth0_server_python.store.abstract import AbstractDataStore
 from dotenv import load_dotenv
 from flask import Flask, after_this_request, redirect, request, render_template
+import time
+import requests
 
 load_dotenv()
 
@@ -70,6 +72,27 @@ def auth0():
         transaction_store=CookieStore(session_secret, "_a0_tx", 300, TransactionData),  # 5 min
     )
 
+def loki_log(event:str, **fields) -> None:
+    loki_url = env.get("LOKI_URL")
+    loki_user = env.get("LOKI_USER")
+    loki_token = env.get("LOKI_TOKEN")
+
+    if not (loki_url and loki_user and loki_token):
+        return
+
+    ts = str(time.time_ns())
+    line = json.dumps({"event": event, **fields}, default=str)
+    payload = {
+        "streams": [{
+            "stream": {"job": "finflow", "event": event},
+            "values": [[ts, line]],
+        }]
+    }
+    try:
+        requests.post(loki_url, auth=(loki_user, loki_token), json=payload, timeout=3)
+    except Exception:
+        app.logger.warning("loki_log failed event=%s", event, exc_info=True)
+
 
 @app.route("/")
 async def home():
@@ -122,6 +145,8 @@ async def login():
             secure=not env.get("APP_BASE_URL", "").startswith("http://"),
             max_age=300,
         )
+        loki_log("auth.step_up_started")
+
 
     if request.args.get("returnTo"):
         response.set_cookie(
@@ -132,6 +157,7 @@ async def login():
             secure=not env.get("APP_BASE_URL", "").startswith("http://"),
             max_age=300,
         )
+
     return response
 
 #Auth0 sends back code + state. The SDK exchanges them, writes the session cookie, then redirects to _return_to (or /) and clears that cookie. Failures return 400.
@@ -144,9 +170,12 @@ async def callback():
         return_to = safe_return_path(request.cookies.get("_return_to"))
         response = redirect(return_to)
         response.delete_cookie("_return_to")
+        user = await auth0().get_user({"request": request})
+        loki_log("auth.callback_success", return_to=return_to, email=(user or {}).get("email"))
         return response
-    except Exception:
+    except Exception as e:
         app.logger.exception("Callback error")
+        loki_log("auth.callback_error", error=str(e))
         return "Something went wrong. Check server logs for details.", 400
 
 
@@ -173,13 +202,17 @@ async def payroll():
             render_template("payroll.html", email=user.get("email", ""))
         )
         response.delete_cookie("_payroll_step_up")
+        loki_log("auth.payroll_gate", outcome="ok", email=user.get("email"))
         return response
     # Failed step-up (came back without MFA) → enroll message
     if request.cookies.get("_payroll_step_up") == "1":
         response = redirect("/?notice=enroll_mfa")
         response.delete_cookie("_payroll_step_up")
+        loki_log("auth.payroll_gate", outcome="enroll_mfa", email=user.get("email"))
         return response
+
     # First click: stay on dashboard, don’t bounce to Auth0
+    loki_log("auth.payroll_gate", outcome="payroll_mfa", email=user.get("email"))
     return redirect("/?notice=payroll_mfa")
 
 
