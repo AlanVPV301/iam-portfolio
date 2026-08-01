@@ -85,12 +85,17 @@ def me(request: Request):
         raise HTTPException(status_code=401, detail="Not authenticated")
     return {"authenticated": True, "user_name": session["user_name"]}
 
-class OptionsBody(BaseModel):
+class RegisterOptionsBody(BaseModel):
     username: str
     display_name: str
 
+
+class LoginOptionsBody(BaseModel):
+    username: str
+
+
 @app.post("/webauthn/register/options")
-def register_options(response: Response, body: OptionsBody):
+def register_options(response: Response, body: RegisterOptionsBody):
     # display_name is required — UI only collects it on the Register tab
     conn = db.get_connection(DATABASE_PATH) 
     row = db.get_user_by_username(conn, body.username)
@@ -138,7 +143,7 @@ def register_verify(request: Request, response: Response, credential: dict):
     return {"ok": True, "credential_id_len": len(result.credential_id)}
 
 @app.post("/webauthn/login/options")
-def login_options(response: Response, body: OptionsBody): 
+def login_options(response: Response, body: LoginOptionsBody):
     conn = db.get_connection(DATABASE_PATH)
     row = db.get_user_by_username(conn, body.username)
     if not row:
