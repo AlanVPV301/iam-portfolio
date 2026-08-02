@@ -8,8 +8,10 @@ exports.onExecutePostLogin = async (event, api) => {
 
   if (event.request?.query?.step_up && !canMfa) {
 
-    api.multifactor.enable("any", { allowRememberBrowser: false });
-    api.authentication.enrollWithAny([{ type: "otp" }])
+    /**api.multifactor.enable("any", { allowRememberBrowser: false }); */
+    api.authentication.enrollWithAny([    
+      { type: 'otp' },
+      { type: 'recovery-code' }])
     return;
   }
 
