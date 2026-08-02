@@ -72,20 +72,25 @@ def auth0():
         transaction_store=CookieStore(session_secret, "_a0_tx", 300, TransactionData),  # 5 min
     )
 
-def loki_log(event:str, **fields) -> None:
+def loki_log(event: str, outcome: str | None = None, **fields) -> None:
     loki_url = env.get("LOKI_URL")
     loki_user = env.get("LOKI_USER")
     loki_token = env.get("LOKI_TOKEN")
 
+    #Skip logging if missing the variables
     if not (loki_url and loki_user and loki_token):
         return
 
-    ts = str(time.time_ns())
-    line = json.dumps({"event": event, **fields}, default=str)
+    line_fields = {"event": event, **fields}
+    stream = {"job": "finflow", "event": event}
+    if outcome is not None:
+        line_fields["outcome"] = outcome
+        stream["outcome"] = outcome
+
     payload = {
         "streams": [{
-            "stream": {"job": "finflow", "event": event},
-            "values": [[ts, line]],
+            "stream": stream,
+            "values": [[str(time.time_ns()), json.dumps(line_fields, default=str)]],
         }]
     }
     try:
