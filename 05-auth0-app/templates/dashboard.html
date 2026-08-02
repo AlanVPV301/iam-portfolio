@@ -15,8 +15,7 @@
     {% if notice == "payroll_mfa" %}
     <div class="banner banner-warn">
       <p>
-        Payroll needs MFA in this session. Enroll an authenticator if you
-        haven’t, then step up.
+        Payroll needs MFA in this session. Complete a step-up challenge to continue.
       </p>
       <a class="button primary" href="/login?step_up=payroll&amp;returnTo=/payroll">
         Step up with MFA
@@ -25,11 +24,10 @@
     {% elif notice == "enroll_mfa" %}
     <div class="banner banner-warn">
       <p>
-        Auth0 did not challenge MFA (usually no enrolled factors). Enroll MFA
-        in Auth0, then try step-up again.
+        You don’t have an authenticator yet. Enroll one, then you’ll land on payroll.
       </p>
       <a class="button primary" href="/login?step_up=payroll&amp;returnTo=/payroll">
-        Step up with MFA
+        Enroll MFA
       </a>
     </div>
     {% endif %}

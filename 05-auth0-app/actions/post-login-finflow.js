@@ -6,8 +6,16 @@ exports.onExecutePostLogin = async (event, api) => {
   const enrolled = (event.user.enrolledFactors ?? []).map((f) => ({ type: f.type }));
   const canMfa = enrolled.length > 0;
 
+  if (event.request?.query?.step_up && !canMfa) {
+
+    api.multifactor.enable("any", { allowRememberBrowser: false });
+    api.authentication.enrollWithAny([{ type: "otp" }])
+    return;
+  }
+
   // Step-up when Flask sends /login?step_up=payroll
   if (event.request?.query?.step_up && canMfa) {
+
     api.multifactor.enable("any", { allowRememberBrowser: false });
     return;
   }
