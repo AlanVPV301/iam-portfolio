@@ -145,7 +145,7 @@ async def login():
             secure=not env.get("APP_BASE_URL", "").startswith("http://"),
             max_age=300,
         )
-        loki_log("auth.step_up_started")
+        loki_log("auth.step_up_started", intent=request.args.get("intent"))
 
 
     if request.args.get("returnTo"):
@@ -185,6 +185,8 @@ async def logout():
         options=LogoutOptions(return_to=env.get("APP_BASE_URL")),
         store_options={"request": request},
     )
+    loki_log("auth.logout")
+
     return redirect(url)
 
 # Route protected by Auth0 post-login action/trigger, checks for MFA AMR,
