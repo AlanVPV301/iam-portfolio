@@ -190,7 +190,7 @@ async def logout():
         options=LogoutOptions(return_to=env.get("APP_BASE_URL")),
         store_options={"request": request},
     )
-    loki_log("auth.logout")
+    loki_log("auth.logout", email=(user or {}).get("email"))
 
     return redirect(url)
 
@@ -209,17 +209,18 @@ async def payroll():
             render_template("payroll.html", email=user.get("email", ""))
         )
         response.delete_cookie("_payroll_step_up")
-        loki_log("auth.payroll_gate", outcome="ok", email=user.get("email"))
-        return response
-    # Failed step-up (came back without MFA) → enroll message
-    if request.cookies.get("_payroll_step_up") == "1":
-        response = redirect("/?notice=enroll_mfa")
-        response.delete_cookie("_payroll_step_up")
-        loki_log("auth.payroll_gate", outcome="enroll_mfa", email=user.get("email"))
+        loki_log("auth.payroll_gate", outcome="mfa_completed", email=user.get("email"))
         return response
 
-    # First click: stay on dashboard, don’t bounce to Auth0
-    loki_log("auth.payroll_gate", outcome="payroll_mfa", email=user.get("email"))
+    # Failed/incomplete step-up: returned with cookie but session still lacks amr MFA
+    if request.cookies.get("_payroll_step_up") == "1":
+        response = redirect("/?notice=step_up_failed")
+        response.delete_cookie("_payroll_step_up")
+        loki_log("auth.payroll_gate", outcome="step_up_failed", email=user.get("email"))
+        return response
+
+    # First click: stay on dashboard, don’t bounce to Auth0, warning banner that step up will be needed
+    loki_log("auth.payroll_gate", outcome="payroll_mfa_cta", email=user.get("email"))
     return redirect("/?notice=payroll_mfa")
 
 

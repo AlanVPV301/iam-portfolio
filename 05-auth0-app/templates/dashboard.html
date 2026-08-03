@@ -21,13 +21,13 @@
         Step up with MFA
       </a>
     </div>
-    {% elif notice == "enroll_mfa" %}
+    {% elif notice == "step_up_failed" %}
     <div class="banner banner-warn">
       <p>
-        You don’t have an authenticator yet. Enroll one, then you’ll land on payroll.
+        Step-up did not complete — this session still has no MFA. Try again to reach payroll.
       </p>
-      <a class="button primary" href="/login?step_up=payroll&intent=enroll&returnTo=/payroll">
-        Enroll MFA
+      <a class="button primary" href="/login?step_up=payroll&intent=step_up&returnTo=/payroll">
+        Try step-up again
       </a>
     </div>
     {% endif %}

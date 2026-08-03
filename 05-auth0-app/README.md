@@ -145,6 +145,22 @@ Mirror these in the dashboard; keep repo copies in sync.
 
 ---
 
+## Observability (Loki)
+
+Flask pushes structured auth events to Grafana Loki (`LOKI_URL` / `LOKI_USER` / `LOKI_TOKEN`). The app owns the payroll step-up gate, so it emits the decision — not Auth0’s full login log stream.
+
+**`auth.payroll_gate` outcomes** (Loki label `outcome`):
+
+| Outcome | When |
+|---------|------|
+| `mfa_completed` | `/payroll` allowed (`amr` includes `mfa`) |
+| `payroll_mfa_cta` | First click without MFA → dashboard banner |
+| `step_up_failed` | Returned after step-up with `_payroll_step_up` set but session still lacks MFA (error/incomplete path, not a funnel stage) |
+
+Happy funnel for dashboards: `payroll_mfa_cta` → `auth.step_up_started` (+ `intent`) → `mfa_completed`.
+
+---
+
 ## Layout
 
 ```text
