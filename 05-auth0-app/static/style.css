@@ -91,6 +91,15 @@ button:hover {
   color: #64748b;
 }
 
+.hint a {
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.hint a:hover {
+  text-decoration: underline;
+}
+
 .banner {
   margin: 0 0 1.5rem;
   padding: 0.85rem 1rem;

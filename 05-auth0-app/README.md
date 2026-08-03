@@ -149,6 +149,8 @@ Mirror these in the dashboard; keep repo copies in sync.
 
 Flask pushes structured auth events to Grafana Loki (`LOKI_URL` / `LOKI_USER` / `LOKI_TOKEN`). The app owns the payroll step-up gate, so it emits the decision — not Auth0’s full login log stream.
 
+**Public dashboard:** [FinFlow auth metrics](https://prudentchinchilla3187.grafana.net/public-dashboards/8799a41df61146c6a59269f3a2336382) (also linked from the app as “View auth metrics”).
+
 **`auth.payroll_gate` outcomes** (Loki label `outcome`):
 
 | Outcome | When |
