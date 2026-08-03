@@ -159,6 +159,15 @@ Flask pushes structured auth events to Grafana Loki (`LOKI_URL` / `LOKI_USER` / 
 
 Happy funnel for dashboards: `payroll_mfa_cta` → `auth.step_up_started` (+ `intent`) → `mfa_completed`.
 
+**`auth.step_up_started` `intent`** (log line field, from payroll banner CTAs):
+
+| Intent | CTA |
+|--------|-----|
+| `step_up` | Step up with MFA / Try step-up again |
+| `enroll` | Enroll MFA |
+
+Both hit the same `/login?step_up=payroll` path; Auth0 enrolls or challenges based on `enrolledFactors`. `intent` is for Loki only.
+
 ---
 
 ## Layout

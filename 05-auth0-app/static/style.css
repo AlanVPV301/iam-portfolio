@@ -102,6 +102,12 @@ button:hover {
   margin: 0 0 0.75rem;
 }
 
+.banner-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 .banner-warn {
   border: 1px solid #92400e;
   background: #291c0e;
