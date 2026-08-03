@@ -131,8 +131,10 @@ async def login():
     #Safe return path, blocks open redirects
     return_to = safe_return_path(request.args.get("returnTo"))
 
-    #Strips returnoTo from Auth0 params
-    auth_params = {k: v for k, v in request.args.items() if k != "returnTo"}
+    # App-only params — do not forward to Auth0 authorize
+    auth_params = {
+        k: v for k, v in request.args.items() if k not in ("returnTo", "intent")
+    }
 
     url = await auth0().start_interactive_login(
         options=StartInteractiveLoginOptions(
@@ -150,8 +152,14 @@ async def login():
             secure=not env.get("APP_BASE_URL", "").startswith("http://"),
             max_age=300,
         )
-        loki_log("auth.step_up_started", intent=request.args.get("intent"), email=(user or {}).get("email") )
-
+        user = await auth0().get_user({"request": request})
+        loki_fields = {}
+        intent = request.args.get("intent")
+        if intent:
+            loki_fields["intent"] = intent
+        if user and user.get("email"):
+            loki_fields["email"] = user["email"]
+        loki_log("auth.step_up_started", **loki_fields)
 
     if request.args.get("returnTo"):
         response.set_cookie(
@@ -186,11 +194,15 @@ async def callback():
 
 @app.route("/logout")
 async def logout():
+    user = await auth0().get_user({"request": request})
     url = await auth0().logout(
         options=LogoutOptions(return_to=env.get("APP_BASE_URL")),
         store_options={"request": request},
     )
-    loki_log("auth.logout", email=(user or {}).get("email"))
+    if user and user.get("email"):
+        loki_log("auth.logout", email=user["email"])
+    else:
+        loki_log("auth.logout")
 
     return redirect(url)
 
