@@ -31,3 +31,4 @@ No environment variables required.
 | Lifecycle Orchestrator | https://jml.alanvpv.dev/docs |
 | SCIM 2.0 Server | https://scim.alanvpv.dev/docs |
 | Entra CA & PIM | GitHub tree (no live service) |
+| SSO App Catalog | `/sso/` — Entra integrations table + architecture |

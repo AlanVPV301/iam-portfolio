@@ -1,0 +1,132 @@
+:root {
+  --bg: #1f3a2e;
+  --bg-deep: #162a22;
+  --ink: #e8dfc8;
+  --ink-soft: rgba(232, 223, 200, 0.72);
+  --line: rgba(232, 223, 200, 0.85);
+  --font-display: "Syne", sans-serif;
+  --font-body: "IBM Plex Sans", sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+.atmosphere {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 60% at 12% 30%, rgba(255, 255, 255, 0.05), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 88% 70%, rgba(0, 0, 0, 0.22), transparent 50%),
+    linear-gradient(160deg, var(--bg) 0%, var(--bg-deep) 100%);
+  z-index: 0;
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+  width: min(480px, calc(100% - 2.5rem));
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3rem 0;
+  animation: rise 700ms ease-out both;
+}
+
+.tag {
+  display: inline-block;
+  width: fit-content;
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border: 1px solid var(--line);
+  padding: 0.35rem 0.65rem;
+  color: var(--ink-soft);
+  margin-bottom: 1.25rem;
+}
+
+h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(1.8rem, 5vw, 2.4rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.05;
+}
+
+.lead {
+  margin: 1rem 0 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+dl {
+  margin: 1.75rem 0 0;
+  display: grid;
+  grid-template-columns: 7.5rem 1fr;
+  gap: 0.5rem 1rem;
+  font-size: 0.88rem;
+}
+
+dt {
+  color: var(--ink-soft);
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding-top: 0.15rem;
+}
+
+dd {
+  margin: 0;
+  line-height: 1.4;
+}
+
+a {
+  color: var(--ink);
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: #fff8e8;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell {
+    animation: none;
+  }
+}

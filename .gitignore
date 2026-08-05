@@ -1,10 +1,36 @@
+# Personal / career planning (not portfolio artifacts)
 PORTFOLIO_PLAN.md
+docs/90-day-entra-implementation-plan.md
+
+# Secrets & local env (also ignored per-project; root safety net)
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
 
 # Terraform
 terraform/.terraform/
+**/.terraform/
 terraform/*.tfstate
 terraform/*.tfstate.*
+**/*.tfstate
+**/*.tfstate.*
 terraform/terraform.tfvars
+**/*.tfvars
+!**/*.tfvars.example
+
+# Debug / browser captures
+*.har
 
 # OS / editor
 .DS_Store
+.idea/
+.vscode/
+*.swp
