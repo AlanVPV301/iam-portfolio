@@ -47,7 +47,7 @@ Zero Trust → **Access** → **Applications** → **Add an application** → **
 | Path               | `/` (entire site)      |
 
 
-**Identity provider:** Entra ID (OIDC gallery connector is fine; use **Generic SAML** if you need a pure SAML story for the SSO catalog).
+**Identity provider:** **Generic SAML** (Native Entra ID OIDC is an alternative)
 
 **Policy:** Allow emails / groups from your lab tenant (e.g. `bob.engineering@…` or a security group). Action: **Allow**.
 

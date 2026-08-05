@@ -49,9 +49,9 @@
             </tr>
             <tr>
               <td>Cloudflare Access (intranet)</td>
-              <td>OIDC / SAML</td>
-              <td>—</td>
-              <td>Planned</td>
+              <td>SAML</td>
+              <td>SCIM (Entra → CF)</td>
+              <td>Live Lab</td>
             </tr>
             <tr>
               <td>
@@ -74,7 +74,7 @@
         </p>
         <pre class="sso-diagram" aria-label="Two provisioning paths">Path A — IdP outbound
   Entra ──SAML+SCIM──► AWS IAM Identity Center
-  Entra ──OIDC/SAML──► Cloudflare Access → internal.alanvpv.dev
+  Entra ──SAML + SCIM──► Cloudflare Access → internal.alanvpv.dev
 
 Path B — Custom JML
   HR stub ──► Orchestrator ──► Entra (Graph)
