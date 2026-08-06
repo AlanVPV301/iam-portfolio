@@ -92,7 +92,23 @@ Public portfolio demos (`alanvpv.dev`, Auth0, passkeys, etc.) stay **outside** t
 
 ## 7. Screenshots
 
-Entra enterprise appsEntra SAML config for Cloudflare AccessCloudflare Access policies (Allow / SAML)Cloudflare Access login methods — Entra SAMLCloudflare IdP — FinFlow Entra SAML + SCIM OnEntra provisioning overview (Cloudflare)Cloudflare SCIM activity logsProvisioning log — create user (Alice → Cloudflare)Intranet after Access — identity from get-identity
+![Entra enterprise apps](assets/sso/cf/entra-enterprise-apps.png)
+
+![Entra SAML config for Cloudflare Access](assets/sso/cf/entra-cloudflare-saml-config.png)
+
+![Cloudflare Access policies (Allow / SAML)](assets/sso/cf/cloudflare-access-policies.png)
+
+![Cloudflare Access login methods — Entra SAML](assets/sso/cf/cloudflare-access-login-methods.png)
+
+![Cloudflare IdP — FinFlow Entra SAML + SCIM On](assets/sso/cf/cloudflare-idp-saml-scim.png)
+
+![Entra provisioning overview (Cloudflare)](assets/sso/cf/entra-cloudflare-provisioning-overview.png)
+
+![Cloudflare SCIM activity logs](assets/sso/cf/cloudflare-scim-activity-logs.png)
+
+![Provisioning log — create user (Alice → Cloudflare)](assets/sso/cf/entra-cloudflare-provisioning-log-create-user.png)
+
+![Intranet after Access — identity from get-identity](assets/sso/cf/intranet-identity-after-access.png)
 
 ---
 

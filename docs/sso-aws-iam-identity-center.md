@@ -98,7 +98,19 @@ Entra enterprise app (assigned users/groups)
 
 ## 7. Screenshots
 
-Entra enterprise apps (AWS + Cloudflare)Entra SAML config for AWS IAM Identity CenterEntra provisioning overview (AWS)Provisioning log — create user (Bob → AWS)Entra user overview — Bob EngineeringIAM Identity Center groups (SCIM-scoped)Bob in FinFlow-Engineering (SCIM)
+![Entra enterprise apps (AWS + Cloudflare)](assets/sso/aws/entra-enterprise-apps.png)
+
+![Entra SAML config for AWS IAM Identity Center](assets/sso/aws/entra-aws-saml-config.png)
+
+![Entra provisioning overview (AWS)](assets/sso/aws/entra-aws-provisioning-overview.png)
+
+![Provisioning log — create user (Bob → AWS)](assets/sso/aws/entra-aws-provisioning-log-create-user.png)
+
+![Entra user overview — Bob Engineering](assets/sso/aws/entra-user-bob-overview.png)
+
+![IAM Identity Center groups (SCIM-scoped)](assets/sso/aws/aws-idc-groups.png)
+
+![Bob in FinFlow-Engineering (SCIM)](assets/sso/aws/aws-idc-user-bob-groups.png)
 
 ---
 
