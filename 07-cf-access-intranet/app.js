@@ -12,9 +12,28 @@ function setIdentityError(message) {
   emailEl.classList.add("identity-error");
 }
 
-function formatGroups(groups) {
-  if (!Array.isArray(groups) || groups.length === 0) return "none";
-  return groups.join(", ");
+const GROUPS_CLAIM =
+  "http://schemas.microsoft.com/ws/2008/06/identity/claims/groups";
+
+function formatGroups(identity) {
+  // Access "groups" array (OIDC / SCIM-normalized) or SAML claim under custom
+  if (Array.isArray(identity.groups) && identity.groups.length > 0) {
+    return identity.groups.join(", ");
+  }
+  const fromCustom = identity.custom?.[GROUPS_CLAIM];
+  if (Array.isArray(fromCustom) && fromCustom.length > 0) {
+    return fromCustom.join(", ");
+  }
+  if (typeof fromCustom === "string" && fromCustom.trim()) {
+    return fromCustom;
+  }
+  return "none";
+}
+
+function formatDisplayName(identity) {
+  const parts = [identity.givenName, identity.surName].filter(Boolean);
+  if (parts.length) return parts.join(" ");
+  return identity.name || "—";
 }
 
 async function loadIdentity() {
@@ -28,8 +47,8 @@ async function loadIdentity() {
     }
     const identity = await resp.json();
     emailEl.textContent = identity.email || "—";
-    nameEl.textContent = identity.name || "—";
-    groupsEl.textContent = formatGroups(identity.groups);
+    nameEl.textContent = formatDisplayName(identity);
+    groupsEl.textContent = formatGroups(identity);
     idpEl.textContent = identity.idp?.type || identity.idp?.id || "—";
     emailEl.classList.remove("identity-muted", "identity-error");
     nameEl.classList.remove("identity-muted");
