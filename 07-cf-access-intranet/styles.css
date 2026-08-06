@@ -103,6 +103,20 @@ dt {
 dd {
   margin: 0;
   line-height: 1.4;
+  word-break: break-word;
+}
+
+.identity-muted {
+  color: var(--ink-soft);
+}
+
+.identity-error {
+  color: #e8b4a0;
+}
+
+code {
+  font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, monospace;
+  font-size: 0.85em;
 }
 
 a {

@@ -23,15 +23,24 @@
       <h1>FinFlow Intranet</h1>
       <p class="lead">
         If you can read this, Cloudflare Access already authenticated you
-        (Entra ID). This page is intentionally empty of secrets — it only
-        proves the Zero Trust gate.
+        (Entra ID). Identity below comes from Access
+        <code>/cdn-cgi/access/get-identity</code> — no secrets on the page.
       </p>
       <dl>
+        <dt>Signed in as</dt>
+        <dd id="identity-email" class="identity-muted">Loading…</dd>
+        <dt>Display name</dt>
+        <dd id="identity-name" class="identity-muted">Loading…</dd>
+        <dt>Groups</dt>
+        <dd id="identity-groups" class="identity-muted">Loading…</dd>
+        <dt>IdP</dt>
+        <dd id="identity-idp" class="identity-muted">Loading…</dd>
         <dt>Purpose</dt>
-        <dd>SAML / OIDC IdP integration demo for the IAM portfolio</dd>
+        <dd>SAML IdP integration demo for the IAM portfolio</dd>
         <dt>Public demos</dt>
         <dd><a href="https://alanvpv.dev">alanvpv.dev</a> stays unprotected</dd>
       </dl>
     </main>
+    <script src="app.js" defer></script>
   </body>
 </html>

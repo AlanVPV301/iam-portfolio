@@ -4,6 +4,8 @@ Static “FinFlow Intranet” page for an **Entra → Cloudflare Zero Trust** SS
 
 **Intended URL:** `https://internal.alanvpv.dev` (or any subdomain you protect with Access)
 
+**Case study (SAML / SCIM / failures):** [`docs/sso-cloudflare-access.md`](../docs/sso-cloudflare-access.md)
+
 ---
 
 ## 1. Deploy the page (Cloudflare Pages)
@@ -52,6 +54,20 @@ Zero Trust → **Access** → **Applications** → **Add an application** → **
 **Policy:** Allow emails / groups from your lab tenant (e.g. `bob.engineering@…` or a security group). Action: **Allow**.
 
 Save → visit `https://internal.alanvpv.dev` in a private window → Entra login → this page.
+
+---
+
+## 3. Signed-in identity on the page
+
+After Access login, [`app.js`](app.js) calls:
+
+```http
+GET /cdn-cgi/access/get-identity
+```
+
+(with the `CF_Authorization` cookie) and fills **Signed in as**, **Display name**, **Groups**, and **IdP** on the page.
+
+This only works when the hostname is protected by Access (e.g. `https://internal.alanvpv.dev`). Local `python3 -m http.server` or a bare `*.pages.dev` URL without the same Access app will show “Could not load identity (open via Access)” — expected.
 
 ---
 
