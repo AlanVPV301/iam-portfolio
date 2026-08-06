@@ -4,7 +4,7 @@ Static “FinFlow Intranet” page for an **Entra → Cloudflare Zero Trust** SS
 
 **Intended URL:** `https://internal.alanvpv.dev` (or any subdomain you protect with Access)
 
-**Case study (SAML / SCIM / failures):** [`docs/sso-cloudflare-access.md`](../docs/sso-cloudflare-access.md)
+**Case study (SAML / SCIM / failures):** `[docs/sso-cloudflare-access.md](../docs/sso-cloudflare-access.md)`
 
 ---
 
@@ -57,15 +57,19 @@ Save → visit `https://internal.alanvpv.dev` in a private window → Entra logi
 
 ---
 
+
+
 ## 3. Signed-in identity on the page
 
-After Access login, [`app.js`](app.js) calls:
+After Access login, `[app.js](app.js)` calls:
 
 ```http
 GET /cdn-cgi/access/get-identity
 ```
 
 (with the `CF_Authorization` cookie) and fills **Signed in as**, **Display name**, **Groups**, and **IdP** on the page.
+
+For Generic SAML, Entra group claims often land under `custom["http://schemas.microsoft.com/ws/2008/06/identity/claims/groups"]` rather than top-level `groups[]`. The page reads both. Cloudflare IdP **SAML attributes** must include that claim URI (plus givenname/surname if you want a real display name).
 
 This only works when the hostname is protected by Access (e.g. `https://internal.alanvpv.dev`). Local `python3 -m http.server` or a bare `*.pages.dev` URL without the same Access app will show “Could not load identity (open via Access)” — expected.
 
