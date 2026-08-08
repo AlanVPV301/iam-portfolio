@@ -76,17 +76,11 @@ Browser → Grafana Cloud (Sign in with Entra)
 
 ## 7. Screenshots
 
-![Grafana Authentication providers](assets/sso/grafana/grafana-authentication-providers.png)
 
-![Entra gallery — Grafana Labs discovery only](assets/sso/grafana/entra-gallery-grafana-discovery-only.png)
 
 ![App registration overview — Grafana - OIDC](assets/sso/grafana/entra-app-registration-overview.png)
 
 ![Redirect URIs](assets/sso/grafana/entra-redirect-uris.png)
-
-![API permissions empty before fix](assets/sso/grafana/entra-api-permissions-empty.png)
-
-![Admin consent required (Bob)](assets/sso/grafana/admin-consent-required.png)
 
 ![API permissions granted](assets/sso/grafana/entra-api-permissions-granted.png)
 
