@@ -12,7 +12,7 @@ The work here is done with the help of Cursor/Claude, official product and indus
 
 **Live hub:** [alanvpv.dev](https://alanvpv.dev) — static landing page in [`00-hub/`](./00-hub/).
 
-**Case studies:** [SSO App Catalog](https://alanvpv.dev/sso/) · [Entra → AWS IAM Identity Center](./docs/sso-aws-iam-identity-center.md) · [Entra → Cloudflare Access](./docs/sso-cloudflare-access.md)
+**Case studies:** [SSO App Catalog](https://alanvpv.dev/sso/) · [Entra → AWS IAM Identity Center](./docs/sso-aws-iam-identity-center.md) · [Entra → Cloudflare Access](./docs/sso-cloudflare-access.md) · [Entra → Grafana Cloud (OIDC)](./docs/sso-grafana-oidc.md)
 
 ## Projects
 

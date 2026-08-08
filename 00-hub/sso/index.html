@@ -71,6 +71,20 @@
               </td>
             </tr>
             <tr>
+              <td>Grafana Cloud</td>
+              <td>OIDC</td>
+              <td>JIT (first login)</td>
+              <td>Live lab</td>
+              <td>
+                <a
+                  href="https://github.com/AlanVPV301/iam-portfolio/blob/main/docs/sso-grafana-oidc.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >GitHub</a
+                >
+              </td>
+            </tr>
+            <tr>
               <td>
                 FinFlow SCIM SaaS
                 <span class="sso-muted">(<a href="https://scim.alanvpv.dev/docs">03</a>)</span>
@@ -95,6 +109,7 @@
         <pre class="sso-diagram" aria-label="Two provisioning paths">Path A — IdP outbound
   Entra ──SAML+SCIM──► AWS IAM Identity Center
   Entra ──SAML + SCIM──► Cloudflare Access → internal.alanvpv.dev
+  Entra ──OIDC (JIT)──► Grafana Cloud
 
 Path B — Custom JML
   HR stub ──► Orchestrator ──► Entra (Graph)
