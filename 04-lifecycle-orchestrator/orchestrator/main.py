@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import secrets
+import subprocess
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -11,6 +12,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from orchestrator import db, engine, locks
 from orchestrator.models import HREvent
 from orchestrator.connectors import scim
+
 
 
 load_dotenv()
@@ -149,6 +151,34 @@ async def ingest_hr_event(event: HREvent, token: str = Depends(verify_token)):
             else:
                 # malformed success — treat as failure
                 raise ValueError(f"unexpected SCIM result: {scim_result}")
+
+            #ENTRA GRAPH PROVISIONING
+            ROOT = Path(__file__).resolve().parents[1]  # 04-lifecycle-orchestrator/
+            script_path = str(ROOT / "scripts" / "finflow-joiner.ps1")
+            groups = result["plan"]["add"]["entra_groups"]
+
+            
+            if result["event_type"] == "JOINER":
+                command = [
+                    "pwsh",
+                    "-ExecutionPolicy", "Bypass",
+                    "-File", script_path,
+                    "-Username", incoming["employee_id"],
+                    "-FirstName", incoming["first_name"],
+                    "-LastName", incoming["last_name"],
+                    "-Department", incoming["department"],
+                    "-TargetGroups", ",".join(groups),
+                ]
+
+                # Run the command and capture the output
+                entra_result = subprocess.run(command, capture_output=True, text=True)
+
+                print(entra_result.stdout)
+                if entra_result.returncode != 0:
+                    print(entra_result.stderr)
+                    db.insert_audit_event(conn, hr_event_id, incoming["employee_id"], "entra_failed", {"stderr": entra_result.stderr})
+                    raise RuntimeError("Entra joiner failed")
+                db.insert_audit_event(conn, hr_event_id, incoming["employee_id"],"entra_provisioned", {"stdout": entra_result.stdout})
 
             db.insert_audit_event(
                 conn,

@@ -3,6 +3,13 @@
 # Requires: Connect-MgGraph -Scopes "User.ReadWrite.All", "Group.ReadWrite.All", "Directory.ReadWrite.All"
 #
 
+param (
+    [string]$Username,
+    [string]$FirstName,
+    [string]$LastName,
+    [string]$Department,
+    [string]$TargetGroups
+)
 
 
 $ErrorActionPreference = "Stop"
@@ -10,7 +17,7 @@ $ErrorActionPreference = "Stop"
 # Get the project root path, then parse through the .env file keys and values
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 if (Test-Path "$ProjectRoot/.env") {
-    Get-Content .env | ForEach-Object {
+    Get-Content (Join-Path $ProjectRoot ".env") | ForEach-Object {
         $line = $_.Trim()
         if ($line -and !$line.StartsWith('#')) {
             $name, $value = $line.Split('=', 2)
@@ -19,7 +26,11 @@ if (Test-Path "$ProjectRoot/.env") {
     }
 }
 
-
+$GroupNames = @(
+    $TargetGroups.Split(",") |
+    ForEach-Object { $_.Trim() } |
+    Where-Object { $_ }
+)
 
 $TenantDomain = "VPVConsulting.onmicrosoft.com"
 $TempPassword = $env:FINFLOW_USER_PASSWORD
@@ -34,21 +45,12 @@ if (-not $TempPassword) {
     exit 1
 }
 
-# New Hire Identity Details
-$FirstName = "John"
-$LastName = "Doe"
-$DisplayName = "$FirstName $LastName"
-$UPN = "john.doe@$TenantDomain"
-$JobTitle = "Cloud Engineer"
-$Department = "Information Technology"
-$UsageLocation = "US"
-
 $PasswordProfile = @{
     Password                      = $TempPassword
     ForceChangePasswordNextSignIn = $false
 }
 
-$TargetGroups = @("FinFlow-Engineering") # Replace with actual Object IDs
+#$TargetGroups = @("FinFlow-Engineering") 
 
 
 # Establish Connection via client credentials - The application permissions need User.ReadWrite.All" and "Group.ReadWrite.All
@@ -61,14 +63,12 @@ Connect-MgGraph -TenantId $TenantId -ClientSecretCredential $CREDENTIAL
 # 3. Create User Account
 $UserParams = @{
     AccountEnabled    = $true
-    DisplayName       = $DisplayName
+    DisplayName       = "$FirstName $LastName"
     GivenName         = $FirstName
     Surname           = $LastName
-    UserPrincipalName = $UPN
-    MailNickname      = $FirstName.ToLower() + "." + $LastName.ToLower()
-    JobTitle          = $JobTitle
+    MailNickname      = $Username.ToLower()
+    UserPrincipalName = $Username.ToLower() + "@" + $TenantDomain
     Department        = $Department
-    UsageLocation     = $UsageLocation
     PasswordProfile   = $PasswordProfile
 }
 
@@ -84,7 +84,7 @@ catch {
     return
 }
 
-foreach ($Group in $TargetGroups) {
+foreach ($Group in $GroupNames) {
     $Group = Get-MgGroup -Filter "displayName eq '$($Group)'"
     if ($Group) {
         New-MgGroupMember -GroupId $Group.Id -DirectoryObjectId $NewUser.Id
