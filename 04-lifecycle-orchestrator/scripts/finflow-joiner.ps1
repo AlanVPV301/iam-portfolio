@@ -8,6 +8,8 @@ param (
     [string]$FirstName,
     [string]$LastName,
     [string]$Department,
+    [string]$Email,
+    [string]$JobTitle,
     [string]$TargetGroups
 )
 
@@ -69,7 +71,9 @@ $UserParams = @{
     MailNickname      = $Username.ToLower()
     UserPrincipalName = $Username.ToLower() + "@" + $TenantDomain
     Department        = $Department
+    JobTitle          = $JobTitle
     PasswordProfile   = $PasswordProfile
+    Mail              = $Email
 }
 
 

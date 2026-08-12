@@ -154,22 +154,45 @@ async def ingest_hr_event(event: HREvent, token: str = Depends(verify_token)):
 
             #ENTRA GRAPH PROVISIONING
             ROOT = Path(__file__).resolve().parents[1]  # 04-lifecycle-orchestrator/
-            script_path = str(ROOT / "scripts" / "finflow-joiner.ps1")
-            groups = result["plan"]["add"]["entra_groups"]
+            joiner_script_path = str(ROOT / "scripts" / "finflow-joiner.ps1")
+            mover_script_path = str(ROOT / "scripts" / "finflow-mover.ps1")
+
+            add_groups = result["plan"]["add"]["entra_groups"]
+            remove_groups = result["plan"]["remove"]["entra_groups"]
+
 
             
             if result["event_type"] == "JOINER":
                 command = [
                     "pwsh",
                     "-ExecutionPolicy", "Bypass",
-                    "-File", script_path,
+                    "-File", joiner_script_path,
                     "-Username", incoming["employee_id"],
                     "-FirstName", incoming["first_name"],
                     "-LastName", incoming["last_name"],
                     "-Department", incoming["department"],
-                    "-TargetGroups", ",".join(groups),
+                    "-Email", incoming["email"],
+                    "-JobTitle", incoming["job_title"],
+                    "-TargetGroups", ",".join(add_groups),
                 ]
+            elif result["event_type"] == "MOVER":
+                command = [
+                    "pwsh",
+                    "-ExecutionPolicy", "Bypass",
+                    "-File", mover_script_path,
+                    "-Username", incoming["employee_id"],
+                    "-Department", incoming["department"],
+                    "-Email", incoming["email"],
+                    "-JobTitle", incoming["job_title"],
+                    "-AddGroups", ",".join(add_groups),
+                    "-RemoveGroups", ",".join(remove_groups),
 
+                ]
+            
+            else:
+                command = None
+
+            if command:
                 # Run the command and capture the output
                 entra_result = subprocess.run(command, capture_output=True, text=True)
 
@@ -177,7 +200,7 @@ async def ingest_hr_event(event: HREvent, token: str = Depends(verify_token)):
                 if entra_result.returncode != 0:
                     print(entra_result.stderr)
                     db.insert_audit_event(conn, hr_event_id, incoming["employee_id"], "entra_failed", {"stderr": entra_result.stderr})
-                    raise RuntimeError("Entra joiner failed")
+                    raise RuntimeError("Entra provisioning process failed")
                 db.insert_audit_event(conn, hr_event_id, incoming["employee_id"],"entra_provisioned", {"stdout": entra_result.stdout})
 
             db.insert_audit_event(
