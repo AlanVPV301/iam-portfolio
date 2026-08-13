@@ -1,14 +1,10 @@
-# FinFlow Ltd — Update user attributes and groups during mover JML process
+# FinFlow Ltd — Disable user, kill sessions and remove groups during leaver JML process
 # Run from an authenticated Microsoft Graph PowerShell session
 # Requires: Connect-MgGraph -Scopes "User.ReadWrite.All", "Group.ReadWrite.All", "Directory.ReadWrite.All"
 #
 
 param (
     [string]$Username,
-    [string]$Department,
-    [string]$Email,
-    [string]$JobTitle,
-    [string]$AddGroups,
     [string]$RemoveGroups
 
 )
@@ -46,25 +42,17 @@ $UPN = $Username.ToLower() + "@" + $TenantDomain
 
 
 try {
-    Write-Host "[FETCH] Fetching user $UPN..." -ForegroundColor Cyan
+    # 1. Fetch Target User and New Manager
+    Write-Host "[FETCH] Fetching user and manager details..." -ForegroundColor Cyan
     $TargetUser = Get-MgUser -UserId $UPN -ErrorAction Stop
 
-    $UpdateParams = @{}
+    # 2. Revoke All Sign-In Sessions Immediately
+    Write-Host "Revoking all active OAuth and web sessions..." -ForegroundColor Yellow
+    Revoke-MgUserSignInSession -UserId $UPN -ErrorAction SilentlyContinue
 
-    if ($Department) {
-        $UpdateParams.Add('Department', $Department)
-    }
-    if ($Email) {
-        $UpdateParams.Add('Mail', $Email)
-    }
-    if ($JobTitle) {
-        $UpdateParams.Add('JobTitle', $JobTitle)
-    }
-
-    if ($UpdateParams.Count -gt 0) {
-        Write-Host "[UPDATE] Updating user properties..." -ForegroundColor Green
-        Update-MgUser -UserId $TargetUser.Id -BodyParameter $UpdateParams
-    }
+    # 3. Disable account (password reset needs User-PasswordProfile.ReadWrite.All — skip for this lab)
+    Write-Host "Disabling account..." -ForegroundColor Yellow
+    Update-MgUser -UserId $UPN -BodyParameter @{ AccountEnabled = $false }
  
 
     # 4. Process Group Offboarding (Remove Access)
@@ -87,31 +75,36 @@ try {
         }
     }
 
-    # 5. Process Group Onboarding (Grant Access)
-    if ($AddGroups) {
-        $AddGroupNames = @(
-            $AddGroups.Split(",") |
-            ForEach-Object { $_.Trim() } |
-            Where-Object { $_ }
-        )
-        foreach ($Group in $AddGroupNames) {
-            $Group = Get-MgGroup -Filter "displayName eq '$($Group)'"
-            if ($Group) {
-                New-MgGroupMember -GroupId $Group.Id -DirectoryObjectId $TargetUser.Id
-                Write-Host "  Added to group: $($Group)"
-            }
-            else {
-                Write-Host "  WARNING: Group '$($Group)' not found — skipping membership"
-            }
+    # 5. Remove Assigned Microsoft 365 Licenses
+    Write-Host "Retrieving assigned licenses..." -ForegroundColor Yellow
+    $LicenseDetails = Get-MgUserLicenseDetail -UserId $UPN
+
+    if ($LicenseDetails) {
+        $LicensesToRemove = @()
+        foreach ($Lic in $LicenseDetails) {
+            $LicensesToRemove += $Lic.SkuId
         }
+        
+        $LicenseChanges = @{
+            AddLicenses    = @()
+            RemoveLicenses = $LicensesToRemove
+        }
+        
+        Write-Host "Stripping licenses..." -ForegroundColor DarkYellow
+        Set-MgUserLicense -UserId $UPN -BodyParameter $LicenseChanges
     }
+    else {
+        Write-Host "No direct licenses to remove." -ForegroundColor Gray
+    }
+
     Write-Host "[SUCCESS] Mover process completed cleanly for $UPN" -ForegroundColor Green
 }
 catch {
-    Write-Error "[FAILURE] Error processing mover lifecycle: $_"
+    Write-Error "[FAILURE] Error processing leaver lifecycle: $_"
     Disconnect-MgGraph
-    exit 1
+    return
 }
 
+# 5. Clean up Connection Profile
 Disconnect-MgGraph
-Write-Host "Mover process completed for $UPN." -ForegroundColor Green
+Write-Host "Joiner provisioning process completed for $UPN." -ForegroundColor Green

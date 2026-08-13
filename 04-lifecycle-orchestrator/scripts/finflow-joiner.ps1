@@ -28,11 +28,16 @@ if (Test-Path "$ProjectRoot/.env") {
     }
 }
 
-$GroupNames = @(
-    $TargetGroups.Split(",") |
-    ForEach-Object { $_.Trim() } |
-    Where-Object { $_ }
-)
+$DisplayName = "$FirstName $LastName"
+
+$GroupNames = @()
+if ($TargetGroups) {
+    $GroupNames = @(
+        $TargetGroups.Split(",") |
+        ForEach-Object { $_.Trim() } |
+        Where-Object { $_ }
+    )
+}
 
 $TenantDomain = "VPVConsulting.onmicrosoft.com"
 $TempPassword = $env:FINFLOW_USER_PASSWORD
@@ -65,15 +70,19 @@ Connect-MgGraph -TenantId $TenantId -ClientSecretCredential $CREDENTIAL
 # 3. Create User Account
 $UserParams = @{
     AccountEnabled    = $true
-    DisplayName       = "$FirstName $LastName"
+    DisplayName       = $DisplayName
     GivenName         = $FirstName
     Surname           = $LastName
     MailNickname      = $Username.ToLower()
     UserPrincipalName = $Username.ToLower() + "@" + $TenantDomain
     Department        = $Department
-    JobTitle          = $JobTitle
     PasswordProfile   = $PasswordProfile
-    Mail              = $Email
+}
+if ($JobTitle) {
+    $UserParams.Add("JobTitle", $JobTitle)
+}
+if ($Email) {
+    $UserParams.Add("Mail", $Email)
 }
 
 
@@ -85,7 +94,7 @@ try {
 catch {
     Write-Error "Failed to create user: $_"
     Disconnect-MgGraph
-    return
+    exit 1
 }
 
 foreach ($Group in $GroupNames) {

@@ -156,6 +156,8 @@ async def ingest_hr_event(event: HREvent, token: str = Depends(verify_token)):
             ROOT = Path(__file__).resolve().parents[1]  # 04-lifecycle-orchestrator/
             joiner_script_path = str(ROOT / "scripts" / "finflow-joiner.ps1")
             mover_script_path = str(ROOT / "scripts" / "finflow-mover.ps1")
+            leaver_script_path = str(ROOT / "scripts" / "finflow-leaver.ps1")
+
 
             add_groups = result["plan"]["add"]["entra_groups"]
             remove_groups = result["plan"]["remove"]["entra_groups"]
@@ -172,7 +174,7 @@ async def ingest_hr_event(event: HREvent, token: str = Depends(verify_token)):
                     "-LastName", incoming["last_name"],
                     "-Department", incoming["department"],
                     "-Email", incoming["email"],
-                    "-JobTitle", incoming["job_title"],
+                    "-JobTitle", incoming["job_title"] or "",
                     "-TargetGroups", ",".join(add_groups),
                 ]
             elif result["event_type"] == "MOVER":
@@ -183,10 +185,17 @@ async def ingest_hr_event(event: HREvent, token: str = Depends(verify_token)):
                     "-Username", incoming["employee_id"],
                     "-Department", incoming["department"],
                     "-Email", incoming["email"],
-                    "-JobTitle", incoming["job_title"],
+                    "-JobTitle", incoming["job_title"] or "",
                     "-AddGroups", ",".join(add_groups),
                     "-RemoveGroups", ",".join(remove_groups),
-
+                ]
+            elif result["event_type"] == "LEAVER":
+                command = [
+                    "pwsh",
+                    "-ExecutionPolicy", "Bypass",
+                    "-File", leaver_script_path,
+                    "-Username", incoming["employee_id"],
+                    "-RemoveGroups", ",".join(remove_groups),
                 ]
             
             else:
