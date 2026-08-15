@@ -89,6 +89,7 @@ document.getElementById("register-btn").addEventListener("click", async () => {
       body: JSON.stringify({
         username: usernameValue,
         display_name: displayNameValue,
+        scenario: window.selectedScenario ? window.selectedScenario() : "happy",
       }),
     });
     if (!optionsResp.ok) {

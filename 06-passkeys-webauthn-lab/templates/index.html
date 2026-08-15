@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{ rp_name | default("FinFlow Passkeys Lab") }}</title>
-  <link rel="stylesheet" href="/static/style.css" />
+  <link rel="stylesheet" href="/static/style.css?v=20260814" />
 </head>
 <body>
   <div class="card">
@@ -14,12 +14,21 @@
 
     <dl>
       <dt>Scenario</dt>
-      <dd><code>{{ scenario | default("happy") }}</code></dd>
+      <dd>
+        <label class="field scenario-field">
+          <select id="scenario" aria-label="Lab scenario">
+            {% for name in lab.scenarios %}
+            <option value="{{ name }}">{% if name == "happy" %}Happy path{% elif name == "wrong_rp_id" %}Wrong RP ID (browser){% elif name == "wrong_origin" %}Origin mismatch (server){% else %}{{ name }}{% endif %}</option>
+            {% endfor %}
+          </select>
+        </label>
+      </dd>
       <dt>RP ID</dt>
-      <dd><code>{{ rp_id | default("localhost") }}</code></dd>
+      <dd><code id="display-rp-id">{{ lab.scenarios.happy.options_rp_id }}</code></dd>
       <dt>Origin</dt>
-      <dd><code>{{ origin | default("http://localhost:8002") }}</code></dd>
+      <dd><code id="display-origin">{{ lab.scenarios.happy.verify_origin }}</code></dd>
     </dl>
+    <p class="hint" id="scenario-hint"></p>
 
     <div class="tabs" role="tablist" aria-label="Passkey ceremony">
       <button
@@ -55,7 +64,8 @@
       <form id="registerForm" class="user-form-fields">
         <label class="field">
           <span class="field-label">Username</span>
-          <input
+          <inputDuplicate log / base64 helpers in the two JS files — leave until you add lab.js.
+
             type="text"
             name="username"
             placeholder="alanvpv.test@test.com"
@@ -104,14 +114,59 @@
         <button type="button" class="primary" id="login-btn">Sign in</button>
       </div>
     </section>
+    <div>
+      <button type="button" class="primary" id="logout-btn">Logout</button>
+
+    </div>
 
     <pre id="output" aria-live="polite">Ready.</pre>
   </div>
 
-  <script src="/static/registration.js?v=20260731" defer></script>
-  <script src="/static/login.js?v=20260731" defer></script>
+  <script src="/static/registration.js?v=20260814" defer></script>
+  <script src="/static/login.js?v=20260814" defer></script>
   <script>
+    window.labConfig = {{ lab | tojson }};
+    const btn = document.getElementById("logout-btn");
+    btn.disabled = true;
+    (async () => {
+      try {
+        const resp = await fetch("/me", { credentials: "same-origin" });
+        const payload = await resp.json();
+        if (resp.ok){
+          btn.disabled = false;
+        }
+      } catch (err) {
+      log({ status: "error", message: err.message || String(err) });
+    }
+    })();
+
+    window.selectedScenario = function selectedScenario() {
+      const el = document.getElementById("scenario");
+      return el ? el.value : "happy";
+    };
+
     (function () {
+      const select = document.getElementById("scenario");
+      const rpEl = document.getElementById("display-rp-id");
+      const originEl = document.getElementById("display-origin");
+      const hintEl = document.getElementById("scenario-hint");
+      const stored = sessionStorage.getItem("passkeys-scenario");
+      if (stored && window.labConfig.scenarios[stored]) {
+        select.value = stored;
+      }
+
+      function applyScenarioDisplay() {
+        const spec = window.labConfig.scenarios[select.value];
+        if (!spec) return;
+        rpEl.textContent = spec.options_rp_id;
+        originEl.textContent = spec.verify_origin;
+        hintEl.textContent = spec.expected_failure || "";
+        sessionStorage.setItem("passkeys-scenario", select.value);
+      }
+
+      select.addEventListener("change", applyScenarioDisplay);
+      applyScenarioDisplay();
+
       const tabRegister = document.getElementById("tab-register");
       const tabLogin = document.getElementById("tab-login");
       const panelRegister = document.getElementById("panel-register");
@@ -131,5 +186,21 @@
       tabLogin.addEventListener("click", () => show("login"));
     })();
   </script>
+  <script>
+  document.getElementById("logout-btn").addEventListener("click", async () => {
+    const btn = document.getElementById("logout-btn");
+
+    try {
+      const resp = await fetch("/logout", {method: "POST", credentials: "same-origin" });
+      const payload = await resp.json();
+      if (resp.ok){
+        btn.disabled = true;
+        log({ status: "signed out successfully" })
+      }
+    } catch (err) {
+      log({ status: "error", message: err.message || String(err) });
+    }
+  });
+</script>
 </body>
 </html>

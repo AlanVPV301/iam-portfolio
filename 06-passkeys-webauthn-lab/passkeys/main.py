@@ -17,10 +17,25 @@ from webauthn.helpers.generate_user_handle import generate_user_handle
 from webauthn.helpers.bytes_to_base64url import bytes_to_base64url
 import logging
 from pydantic import BaseModel
-from passkeys.sessions import save_challenge, pop_challenge, save_session, load_session
+from passkeys.sessions import (
+    save_challenge,
+    pop_challenge,
+    save_session,
+    load_session,
+    clear_session_cookie,
+)
 from passkeys import db
-from passkeys.webauthn_helpers import begin_registration, finish_registration, begin_authentication, finish_authentication
-from passkeys.webauthn_helpers import RP_NAME, RP_ID, ORIGIN
+from passkeys.webauthn_helpers import (
+    begin_registration,
+    finish_registration,
+    begin_authentication,
+    finish_authentication,
+    resolve_scenario,
+    lab_config,
+    RP_NAME,
+    RP_ID,
+    ORIGIN,
+)
 
 
 
@@ -72,9 +87,9 @@ def home(request: Request):
         name="index.html",
         context={
             "rp_name": RP_NAME,
-            "scenario": "happy",
             "rp_id": RP_ID,
             "origin": ORIGIN,
+            "lab": lab_config(),
         },
     )
 
@@ -88,10 +103,12 @@ def me(request: Request):
 class RegisterOptionsBody(BaseModel):
     username: str
     display_name: str
+    scenario: str = "happy"
 
 
 class LoginOptionsBody(BaseModel):
     username: str
+    scenario: str = "happy"
 
 
 @app.post("/webauthn/register/options")
@@ -106,8 +123,20 @@ def register_options(response: Response, body: RegisterOptionsBody):
     else:
         user_id_bytes = base64url_to_bytes(row["id"])
 
-    options_json, challenge = begin_registration(body.username, user_id_bytes, body.display_name)
-    save_challenge("register", response, challenge, user_name=body.username)
+    scenario = resolve_scenario(body.scenario)
+    options_json, challenge = begin_registration(
+        body.username,
+        user_id_bytes,
+        body.display_name,
+        rp_id=scenario["options_rp_id"],
+    )
+    save_challenge(
+        "register",
+        response,
+        challenge,
+        user_name=body.username,
+        scenario=scenario["name"],
+    )
     return options_json
 
 
@@ -115,12 +144,18 @@ def register_options(response: Response, body: RegisterOptionsBody):
 def register_verify(request: Request, response: Response, credential: dict):
     #A stale or tampered challenge cookie is a client problem, not a server fault
     try:
-        challenge, user_name = pop_challenge(request, "register")
+        challenge, user_name, scenario_name = pop_challenge(request, "register")
     except ValueError as err:
         raise HTTPException(status_code=400, detail=f"Registration challenge {err}") from err
     response.delete_cookie("_webauthn_tx")
 
-    result = finish_registration(credential, expected_challenge=challenge)
+    scenario = resolve_scenario(scenario_name)
+    result = finish_registration(
+        credential,
+        expected_challenge=challenge,
+        expected_rp_id=scenario["verify_rp_id"],
+        expected_origin=scenario["verify_origin"],
+    )
     if isinstance(result, dict):
         raise HTTPException(status_code=400, detail=result.get("msg"))
 
@@ -170,14 +205,25 @@ def login_options(response: Response, body: LoginOptionsBody):
                 transports=transports,
             )
         )
-    options_json, challenge = begin_authentication(user_id, allow_credentials)
-    save_challenge("login", response, challenge, body.username)
+    scenario = resolve_scenario(body.scenario)
+    options_json, challenge = begin_authentication(
+        user_id,
+        allow_credentials,
+        rp_id=scenario["options_rp_id"],
+    )
+    save_challenge(
+        "login",
+        response,
+        challenge,
+        body.username,
+        scenario=scenario["name"],
+    )
     return options_json
 
 @app.post("/webauthn/login/verify")
 def login_verify(request: Request, response: Response, credential: dict):
     try:
-        challenge, user_name = pop_challenge(request, "login")
+        challenge, user_name, scenario_name = pop_challenge(request, "login")
     except ValueError as err:
         raise HTTPException(status_code=400, detail=f"Login challenge {err}") from err
     response.delete_cookie("_webauthn_tx")
@@ -188,11 +234,14 @@ def login_verify(request: Request, response: Response, credential: dict):
     if not credential_row:
         raise HTTPException(404, "Unknown passkey")
 
+    scenario = resolve_scenario(scenario_name)
     verification = finish_authentication(
         credential,
         expected_challenge=challenge,
         public_key=credential_row["public_key"],
         sign_count=credential_row["sign_count"],
+        expected_rp_id=scenario["verify_rp_id"],
+        expected_origin=scenario["verify_origin"],
     )
 
     if isinstance(verification, dict):
@@ -207,3 +256,14 @@ def login_verify(request: Request, response: Response, credential: dict):
     save_session(response, user_name, credential_row["user_id"])
 
     return {"ok": True}
+
+
+@app.post("/logout")
+def logout(response: Response):
+    clear_session_cookie(response)
+    return {"ok": True}
+
+
+@app.get("/lab/config")
+def get_lab_config():
+    return lab_config()

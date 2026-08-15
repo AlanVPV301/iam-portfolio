@@ -8,7 +8,7 @@ Passkey registration and authentication implemented directly against the WebAuth
 
 ---
 
-## Scope
+## Endpoints scope
 
 - `GET /health` — unauthenticated sanity check
 - `GET /` — lab UI (shows the active RP ID and origin)
@@ -16,11 +16,24 @@ Passkey registration and authentication implemented directly against the WebAuth
 - `POST /webauthn/register/verify` — verifies attestation, stores credential + sign count
 - `POST /webauthn/login/options` — returns request options scoped to the user's credentials
 - `POST /webauthn/login/verify` — verifies assertion, updates sign count, issues a session
+- `POST /logout` — clears current session
 - `GET /me` — returns the current session, or 401 when unauthenticated
 
-**Next:** `POST /logout`, Android Digital Asset Links (`assetlinks.json`), failure scenarios (`SCENARIO` env var is documented but not yet wired up).
+**Next:** Android Digital Asset Links (`assetlinks.json`)
 
 ---
+
+
+
+## Scenarios
+
+Simulated common success/failure scenarios in passkey configurations:
+
+- `happy:` Correctly configured path
+- `wrong_rp_id:` Simulates attempting the request using a Relying Party ID that does not match the expected one
+- `wrong_origin:` Login/Register Verify uses a fake `expected_origin` → py_webauthn 400.
+
+The scenario is stored in the `_webauthn_tx` cookie, which resolves the RP_ID and Origin based on it to prevent the scenario to be changed mid-ceremony
 
 ## Quick start
 
@@ -40,7 +53,11 @@ On fish: `source .venv/bin/activate.fish`.
 
 `RP_ID` and `ORIGIN` must match the URL in the address bar exactly, or the browser refuses the ceremony. `ORIGIN` is read at import, so restart uvicorn after changing it.
 
+Passkeys in this lab require user verification (PIN or biometric) on both registration and sign-in.
+
 ---
+
+
 
 ## Cookies
 
@@ -57,6 +74,8 @@ Ephemeral session cookies rather than using a persistent DB setup. Two signed co
 
 ---
 
+
+
 ## Deploy
 
 Render web service behind a Cloudflare DNS record for `passkeys.alanvpv.dev`:
@@ -70,6 +89,8 @@ SESSION_SECRET=<openssl rand -hex 32>
 Registered passkeys live in SQLite, which resets on redeploy unless a persistent disk is attached — expected for a lab.
 
 ---
+
+
 
 ## Layout
 
@@ -88,6 +109,8 @@ Registered passkeys live in SQLite, which resets on redeploy unless a persistent
 ```
 
 ---
+
+
 
 ## Transmit / SailPoint mapping
 

@@ -93,7 +93,10 @@ document.getElementById("login-btn").addEventListener("click", async () => {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username: usernameValue }),
+      body: JSON.stringify({
+        username: usernameValue,
+        scenario: window.selectedScenario ? window.selectedScenario() : "happy",
+      }),
     });
 
     //Check for errors in the options call before proceeding, to catch issues such as user not found
@@ -137,6 +140,10 @@ async function renderSession() {
   try {
     const resp = await fetch("/me", { credentials: "same-origin" });
     const payload = await resp.json();
+    const logout_btn = document.getElementById("logout-btn");
+    if (resp.ok){
+      logout_btn.disabled = false;
+    }
     log(
       resp.ok
         ? { status: "signed in", user_name: payload.user_name }

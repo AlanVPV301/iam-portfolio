@@ -25,11 +25,18 @@ COOKIE_SECURE = ORIGIN.startswith("https://")
 def bytes_to_base64url(value: bytes) -> str:
     return urlsafe_b64encode(value).rstrip(b"=").decode("ascii")
 
-def save_challenge(ceremony:str, response: Response, challenge: bytes, user_name: str) -> None:
+def save_challenge(
+    ceremony: str,
+    response: Response,
+    challenge: bytes,
+    user_name: str,
+    scenario: str = "happy",
+) -> None:
     payload = {
         "ceremony": ceremony,
         "challenge": bytes_to_base64url(challenge),
         "user_name": user_name,
+        "scenario": scenario,
     }
     token = serializer_tx.dumps(payload)
     response.set_cookie(
@@ -68,7 +75,7 @@ def load_session(request: Request) -> dict | None:
         return None
 
 
-def pop_challenge(request: Request, expected_ceremony: str) -> tuple[bytes, str]:
+def pop_challenge(request: Request, expected_ceremony: str) -> tuple[bytes, str, str]:
     token = request.cookies.get(COOKIE_NAME)
     if not token:
         raise ValueError("missing cookie")
@@ -83,4 +90,14 @@ def pop_challenge(request: Request, expected_ceremony: str) -> tuple[bytes, str]
 
     challenge = base64url_to_bytes(payload["challenge"])
     user_name = payload["user_name"]
-    return challenge, user_name
+    scenario = payload.get("scenario") or "happy"
+    return challenge, user_name, scenario
+
+
+def clear_session_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key="_webauthn_session",
+        httponly=True,
+        samesite="lax",
+        secure=COOKIE_SECURE,
+    )
