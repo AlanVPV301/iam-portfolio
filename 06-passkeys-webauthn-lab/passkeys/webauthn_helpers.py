@@ -18,9 +18,9 @@ RP_NAME = os.getenv("RP_NAME")
 RP_ID = os.getenv("RP_ID")
 ORIGIN = os.getenv("ORIGIN")
 
-SCENARIO_NAMES = ("happy", "wrong_rp_id", "wrong_origin")
+SCENARIO_NAMES = ("happy", "wrong_rp_id", "wrong_origin","expired_challenge")
 WRONG_RP_ID = "evil.example"
-WRONG_ORIGIN = "https://evil.example"
+WRONG_ORIGIN = "https://other.origin"
 
 
 def resolve_scenario(name: str | None) -> dict:
@@ -40,6 +40,14 @@ def resolve_scenario(name: str | None) -> dict:
             "verify_rp_id": RP_ID,
             "verify_origin": WRONG_ORIGIN,
             "expected_failure": "Ceremony succeeds; server verify fails on origin mismatch.",
+        }
+    if scenario == "expired_challenge":
+        return {
+            "name": scenario,
+            "options_rp_id": RP_ID,
+            "verify_rp_id": RP_ID,
+            "verify_origin": ORIGIN,
+            "expected_failure": "Ceremony succeeds; server verify fails on with 400 expired cookie.",
         }
     return {
         "name": "happy",

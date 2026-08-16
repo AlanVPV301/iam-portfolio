@@ -91,6 +91,8 @@ def pop_challenge(request: Request, expected_ceremony: str) -> tuple[bytes, str,
     challenge = base64url_to_bytes(payload["challenge"])
     user_name = payload["user_name"]
     scenario = payload.get("scenario") or "happy"
+    if scenario == "expired_challenge":
+        raise ValueError("invalid or expired cookie")
     return challenge, user_name, scenario
 
 

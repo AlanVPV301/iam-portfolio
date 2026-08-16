@@ -121,10 +121,11 @@ pre {
   background: #0b1220;
   border: 1px solid #2d3148;
   font-size: 0.8rem;
-  overflow-x: auto;
+  overflow: auto;
   white-space: pre-wrap;
   word-break: break-word;
   min-height: 4rem;
+  max-height: 16rem;
 }
 
 .hint {

@@ -1,10 +1,3 @@
-const output = document.getElementById("output");
-
-function log(message) {
-  output.textContent =
-    typeof message === "string" ? message : JSON.stringify(message, null, 2);
-}
-
 //string → ArrayBuffer. server sends strings, browser API needs bytes
 function bufferFromBase64url(value) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
@@ -56,14 +49,22 @@ function registrationCredentialToJSON(credential) {
 }
 
 async function parseOptionsResponse(resp) {
-  let options = await resp.json();
-  if (typeof options === "string") options = JSON.parse(options);
-  return options;
+  const payload = await resp.json();
+  if (!resp.ok) {
+    const detail = payload?.detail;
+    if (typeof detail === "string") throw new Error(detail);
+    if (Array.isArray(detail)) {
+      throw new Error(detail.map((item) => item.msg).join("; "));
+    }
+    throw new Error(resp.statusText || "Request failed");
+  }
+  if (typeof payload === "string") return JSON.parse(payload);
+  return payload;
 }
 
 document.getElementById("register-btn").addEventListener("click", async () => {
   if (!window.PublicKeyCredential) {
-    log("WebAuthn is not available in this browser or context.");
+    logLine("WebAuthn is not available in this browser or context.");
     return;
   }
 
@@ -81,7 +82,9 @@ document.getElementById("register-btn").addEventListener("click", async () => {
     const usernameValue = formData.get("username");
     const displayNameValue = formData.get("displayName");
 
-    log("Requesting registration options…");
+    clearLog();
+    logScenarioHeader();
+
     const optionsResp = await fetch("/webauthn/register/options", {
       method: "POST",
       credentials: "same-origin", // required so the browser sends and stores the _webauthn_tx cookie from the server
@@ -92,34 +95,38 @@ document.getElementById("register-btn").addEventListener("click", async () => {
         scenario: window.selectedScenario ? window.selectedScenario() : "happy",
       }),
     });
-    if (!optionsResp.ok) {
-      throw new Error(`Options failed: ${optionsResp.status} ${optionsResp.statusText}`);
-    }
-
+    logLine("POST /webauthn/register/options " + optionsResp.status);
     const options = await parseOptionsResponse(optionsResp);
-    log("Creating passkey (browser prompt)…");
+    logLine("RP ID from server: " + (options.rp?.id || options.rpId || "(missing)"));
 
-    const credential = await navigator.credentials.create({
-      publicKey: prepareRegistrationOptions(options),
-    });
+    let credential;
+    try {
+      credential = await navigator.credentials.create({
+        publicKey: prepareRegistrationOptions(options),
+      });
+    } catch (err) {
+      logCeremonyError("credentials.create", err);
+      return;
+    }
     if (!credential) throw new Error("No credential returned.");
+    logLine("credentials.create OK id=" + String(credential.id).slice(0, 12) + "…");
 
-    log("Verifying registration…");
     const verifyResp = await fetch("/webauthn/register/verify", {
       method: "POST",
       credentials: "same-origin",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(registrationCredentialToJSON(credential)),
     });
-
     const result = await verifyResp.json();
+    logLine("POST /webauthn/register/verify " + verifyResp.status);
     if (!verifyResp.ok) {
-      throw new Error(result.detail || result.msg || verifyResp.statusText);
+      logLine(result.detail || result.msg || verifyResp.statusText);
+      return;
     }
 
-    log({ status: "registered", result });
+    logLine("registered");
   } catch (err) {
-    log({ status: "error", message: err.message || String(err) });
+    logLine("error: " + (err.message || String(err)));
   } finally {
     btn.disabled = false;
   }

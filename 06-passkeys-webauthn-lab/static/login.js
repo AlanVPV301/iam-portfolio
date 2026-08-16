@@ -1,10 +1,3 @@
-const outputLogin = document.getElementById("output");
-
-function log(message) {
-  outputLogin.textContent =
-    typeof message === "string" ? message : JSON.stringify(message, null, 2);
-}
-
 //string → ArrayBuffer. server sends strings, browser API needs bytes
 function bufferFromBase64url(value) {
   const padding = "=".repeat((4 - (value.length % 4)) % 4);
@@ -72,7 +65,7 @@ async function parseOptionsResponse(resp) {
 
 document.getElementById("login-btn").addEventListener("click", async () => {
   if (!window.PublicKeyCredential) {
-    log("WebAuthn is not available in this browser or context.");
+    logLine("WebAuthn is not available in this browser or context.");
     return;
   }
 
@@ -89,6 +82,9 @@ document.getElementById("login-btn").addEventListener("click", async () => {
     const formData = new FormData(form);
     const usernameValue = formData.get("username");
 
+    clearLog();
+    logScenarioHeader();
+
     const optionsResp = await fetch("/webauthn/login/options", {
       method: "POST",
       credentials: "same-origin",
@@ -98,38 +94,38 @@ document.getElementById("login-btn").addEventListener("click", async () => {
         scenario: window.selectedScenario ? window.selectedScenario() : "happy",
       }),
     });
-
-    //Check for errors in the options call before proceeding, to catch issues such as user not found
+    logLine("POST /webauthn/login/options " + optionsResp.status);
 
     const optionsFromServer = await parseOptionsResponse(optionsResp);
+    logLine("RP ID from server: " + (optionsFromServer.rpId || optionsFromServer.rp?.id || "(missing)"));
 
-    console.log("options status", optionsResp.status);
-    console.log("options raw", optionsFromServer);
-    console.log("challenge", optionsFromServer.challenge);
-    console.log("allowCredentials", optionsFromServer.allowCredentials);
+    let assertion;
+    try {
+      assertion = await navigator.credentials.get({
+        publicKey: prepareAuthenticationOptions(optionsFromServer)
+      });
+    } catch (err) {
+      logCeremonyError("credentials.get", err);
+      return;
+    }
 
-
-    // 3. Request assertion (signature) from the user's device authenticator
-    const assertion = await navigator.credentials.get({
-      publicKey: prepareAuthenticationOptions(optionsFromServer)
-    });
-
-    // 5. Submit to server to finalize authentication and issue a session cookie/JWT
     const verifyResponse = await fetch('/webauthn/login/verify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(authenticationCredentialToJSON(assertion)),
-      credentials: "same-origin", 
+      credentials: "same-origin",
     });
 
     const result = await verifyResponse.json();
+    logLine("POST /webauthn/login/verify " + verifyResponse.status);
     if (!verifyResponse.ok) {
-      throw new Error(result.detail || result.msg || verifyResponse.statusText);
+      logLine(result.detail || result.msg || verifyResponse.statusText);
+      return;
     }
 
     await renderSession();
   } catch (err) {
-    log({ status: "error", message: err.message || String(err) });
+    logLine("error: " + (err.message || String(err)));
   } finally {
     btn.disabled = false;
   }
@@ -144,13 +140,13 @@ async function renderSession() {
     if (resp.ok){
       logout_btn.disabled = false;
     }
-    log(
+    logLine(
       resp.ok
-        ? { status: "signed in", user_name: payload.user_name }
-        : { status: "signed out" }
+        ? "signed in as " + payload.user_name
+        : "signed out"
     );
   } catch (err) {
-    log({ status: "error", message: err.message || String(err) });
+    logLine("error: " + (err.message || String(err)));
   }
 }
 
