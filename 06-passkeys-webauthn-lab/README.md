@@ -33,6 +33,7 @@ Simulated common success/failure scenarios in passkey configurations:
 - `wrong_rp_id:` Simulates attempting the request using a Relying Party ID that does not match the expected one
 - `wrong_origin:` Login/Register Verify uses a fake `expected_origin` → py_webauthn 400.
 - `expired_challenge:` Simulates an expired or invalid cookie on pop_challenge -> 400
+- `require_attestation:` Register options ask `attestation: direct`; verify rejects `fmt: none`. Register-only — synced passkeys such as Google PM and Apple Keychain fail, a packed/TPM key would pass (For example, a YubiKey).
 
 The scenario is stored in the `_webauthn_tx` cookie, which resolves the RP_ID and Origin based on it to prevent the scenario to be changed mid-ceremony
 

@@ -9,8 +9,11 @@ from webauthn import (
 )
 import os
 from webauthn.helpers.structs import (
+    AuthenticatorSelectionCriteria,
     UserVerificationRequirement,
     PublicKeyCredentialDescriptor,
+    AttestationFormat,
+    AttestationConveyancePreference
 )
 from webauthn.authentication.verify_authentication_response import VerifiedAuthentication
 
@@ -18,7 +21,7 @@ RP_NAME = os.getenv("RP_NAME")
 RP_ID = os.getenv("RP_ID")
 ORIGIN = os.getenv("ORIGIN")
 
-SCENARIO_NAMES = ("happy", "wrong_rp_id", "wrong_origin","expired_challenge")
+SCENARIO_NAMES = ("happy", "wrong_rp_id", "wrong_origin","expired_challenge", "require_attestation")
 WRONG_RP_ID = "evil.example"
 WRONG_ORIGIN = "https://other.origin"
 
@@ -31,6 +34,8 @@ def resolve_scenario(name: str | None) -> dict:
             "options_rp_id": WRONG_RP_ID,
             "verify_rp_id": WRONG_RP_ID,
             "verify_origin": ORIGIN,
+            "attestation": "none",
+            "require_attestation": False,
             "expected_failure": "Browser rejects rpId that is not this page's host.",
         }
     if scenario == "wrong_origin":
@@ -39,6 +44,8 @@ def resolve_scenario(name: str | None) -> dict:
             "options_rp_id": RP_ID,
             "verify_rp_id": RP_ID,
             "verify_origin": WRONG_ORIGIN,
+            "attestation": "none",
+            "require_attestation": False,
             "expected_failure": "Ceremony succeeds; server verify fails on origin mismatch.",
         }
     if scenario == "expired_challenge":
@@ -47,13 +54,27 @@ def resolve_scenario(name: str | None) -> dict:
             "options_rp_id": RP_ID,
             "verify_rp_id": RP_ID,
             "verify_origin": ORIGIN,
+            "attestation": "none",
+            "require_attestation": False,
             "expected_failure": "Ceremony succeeds; server verify fails on with 400 expired cookie.",
+        }
+    if scenario == "require_attestation":
+        return {
+            "name": scenario,
+            "options_rp_id": RP_ID,
+            "verify_rp_id": RP_ID,
+            "verify_origin": ORIGIN,
+            "attestation": "direct",
+            "require_attestation": True,
+            "expected_failure": "Registration fails for authenticators that return fmt == none in attestation",
         }
     return {
         "name": "happy",
         "options_rp_id": RP_ID,
         "verify_rp_id": RP_ID,
         "verify_origin": ORIGIN,
+        "attestation": "none",
+        "require_attestation": False,
         "expected_failure": "",
     }
 
@@ -72,14 +93,23 @@ def begin_registration(
     display_name: str,
     *,
     rp_id: str,
+    attestation: str,
 ) -> tuple[dict, bytes]:
+    conveyance = (
+        AttestationConveyancePreference.DIRECT
+        if attestation == "direct"
+        else AttestationConveyancePreference.NONE
+    )
     options = generate_registration_options(
         rp_id=rp_id,
         rp_name=RP_NAME,
         user_id=user_id,
         user_name=user_name,
         user_display_name=display_name,
-        user_verification=UserVerificationRequirement.REQUIRED,
+        authenticator_selection=AuthenticatorSelectionCriteria(
+            user_verification=UserVerificationRequirement.REQUIRED,
+        ),
+        attestation=conveyance,
     )
     challenge = options.challenge
     return options_to_json(options), challenge
@@ -90,16 +120,24 @@ def finish_registration(
     *,
     expected_rp_id: str,
     expected_origin: str,
+    require_attestation: bool,
 ):
     try:
-        return verify_registration_response(
+        verification = verify_registration_response(
             credential=credential,
             expected_challenge=expected_challenge,
             expected_origin=expected_origin,
             expected_rp_id=expected_rp_id,
         )
+        if require_attestation and verification.fmt == AttestationFormat.NONE:
+            return {
+                "verified": False,
+                "msg": f"Attestation format is none (aaguid={verification.aaguid}); expected a non-none statement.",
+                "status": 400,
+            }
     except Exception as err:
         return {"verified": False, "msg": str(err), "status": 400}
+    return verification
 
 
 def begin_authentication(

@@ -18,7 +18,7 @@
         <label class="field scenario-field">
           <select id="scenario" aria-label="Lab scenario">
             {% for name in lab.scenarios %}
-            <option value="{{ name }}">{% if name == "happy" %}Happy path{% elif name == "wrong_rp_id" %}Wrong RP ID (browser){% elif name == "wrong_origin" %}Origin mismatch (server){% elif name == "expired_challenge" %}Expired challenge (verify){% else %}{{ name }}{% endif %}</option>
+            <option value="{{ name }}">{% if name == "happy" %}Happy path{% elif name == "wrong_rp_id" %}Wrong RP ID (browser){% elif name == "wrong_origin" %}Origin mismatch (server){% elif name == "expired_challenge" %}Expired challenge (verify){% elif name == "require_attestation" %}Direct attestation (register){% else %}{{ name }}{% endif %}</option>
             {% endfor %}
           </select>
         </label>
@@ -121,7 +121,7 @@
     <pre id="output" aria-live="polite">Ready.</pre>
   </div>
 
-  <script src="/static/lab.js?v=20260816" defer></script>
+  <script src="/static/lab.js?v=20260816b" defer></script>
   <script src="/static/registration.js?v=20260816" defer></script>
   <script src="/static/login.js?v=20260816" defer></script>
   <script>

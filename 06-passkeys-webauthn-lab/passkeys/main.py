@@ -129,6 +129,7 @@ def register_options(response: Response, body: RegisterOptionsBody):
         user_id_bytes,
         body.display_name,
         rp_id=scenario["options_rp_id"],
+        attestation=scenario["attestation"],
     )
     save_challenge(
         "register",
@@ -155,6 +156,7 @@ def register_verify(request: Request, response: Response, credential: dict):
         expected_challenge=challenge,
         expected_rp_id=scenario["verify_rp_id"],
         expected_origin=scenario["verify_origin"],
+        require_attestation=scenario["require_attestation"],
     )
     if isinstance(result, dict):
         raise HTTPException(status_code=400, detail=result.get("msg"))

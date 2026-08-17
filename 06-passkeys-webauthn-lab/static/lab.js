@@ -20,6 +20,7 @@ function logScenarioHeader() {
   logLine("This page: " + location.origin);
   logLine("RP ID in options: " + spec.options_rp_id);
   logLine("Origin at verify: " + spec.verify_origin);
+  logLine("Attestation in options: " + spec.attestation);
   if (spec.expected_failure) logLine("Expected: " + spec.expected_failure);
 }
 
